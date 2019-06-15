@@ -103,3 +103,29 @@ func TestAdd64(t *testing.T) {
 		ba.Reset()
 	}
 }
+
+func TestRead8(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		s, l     uint64 // start and length
+		expected string
+	}{
+		{&BitArray{raw: []byte{0xff}, bits: 8}, 0, 8, "11111111"},
+		{&BitArray{raw: []byte{0xff}, bits: 8}, 0, 1, "00000001"},
+		{&BitArray{raw: []byte{0xfe}, bits: 8}, 0, 8, "11111110"},
+		{&BitArray{raw: []byte{0x03}, bits: 8}, 7, 1, "00000001"},
+		{&BitArray{raw: []byte{0xd0}, bits: 4}, 0, 4, "00001101"},
+	}
+
+	for _, tt := range tests {
+		a, err := tt.ba.Read8(tt.s, tt.l)
+		if err != nil {
+			t.Errorf("failed with %q", err)
+		}
+		actual := fmt.Sprintf("%08b", a)
+		fmt.Printf("expected=%s actual=%s\n", tt.expected, actual)
+		if actual != tt.expected {
+			t.Errorf("expected %q got %q", tt.expected, actual)
+		}
+	}
+}

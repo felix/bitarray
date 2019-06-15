@@ -1,8 +1,7 @@
 package bitarray
 
 import (
-	//"fmt"
-	//"math"
+	"fmt"
 	"math/bits"
 	"sync"
 )
@@ -80,38 +79,50 @@ func (ba *BitArray) Add16(in uint16) { ba.Add64(uint64(in)) }
 // Add8 integers onto the bit array.
 func (ba *BitArray) Add8(in uint8) { ba.Add64(uint64(in)) }
 
-// Read bits from the bit array.
-/*
-func (ba *BitArray) Read(start, length uint64) []byte {
+// Read64 bits from the bit array.
+func (ba *BitArray) Read64(start, length uint64) uint64 {
 	ba.lock.RLock()
 	defer ba.lock.RUnlock()
-	startB := int(math.Ceil(float64(start) / float64(8)))
-	endB := int(math.Ceil(float64(start+length) / float64(8)))
-	bs := ba.raw[startB:endB]
+	//bs := ba.raw[startB:endB]
+	fmt.Printf("raw=%08b start=%d length=%d\n", ba.raw, start, length)
 
-	// Number of bits in the first byte
-	bitsInFirst := start % 8
+	// First relevant byte
+	firstByte := int(start / 8)
+	lastByte := int((start + length - 1) / 8)
+	fmt.Printf("firstByte=%d lastByte=%d\n", firstByte, lastByte)
 	// Number of bits in the last byte
-	bitsInLast := (length - bitsInFirst) % 8
+	bitsInLast := uint(start+length) - uint(lastByte*8)
 
-	out := new(BitArray)
-	for i, b := range bs {
-		if i == 0 {
-			// First byte
-			mask := uint8(math.Pow(2, float64(bitsInFirst)))
-			out.Add8(uint8(b) & mask)
-		} else if i == len(bs)-1 {
-			// Last byte
-			mask := uint8(math.Pow(2, float64(bitsInLast)))
-			last := uint8(b) & (mask << uint(bits.LeadingZeros8(mask)))
-			last >>= uint8((len(ba.raw) * 8) - ba.bits)
-			out.Add8(last)
-		} else {
-			// Whole byte
-			out.Add8(uint8(b))
-		}
+	fmt.Printf("bitsinlast=%d\n", bitsInLast)
+
+	// A mask for each byte
+	masks := make([]uint8, lastByte+1-firstByte)
+	for i := start; i < (start + length); i++ {
+		// The bit we want is in byteIdx byte
+		byteIdx := i / 8
+		//b := ba.raw[byteIdx]
+
+		// bitIdx is the bit offset in this byte
+		bitIdx := i - (byteIdx * 8)
+		masks[byteIdx] |= (1 << (7 - bitIdx))
+		fmt.Printf("byteIdx=%d bitIdx=%d mask=%08b\n", byteIdx, bitIdx, masks[byteIdx])
 	}
-	return out.Bytes()
+	var out uint64
+	for i, m := range masks {
+		b := uint8(ba.raw[i]) & m
+		out |= uint64(b << uint(i))
+	}
+	fmt.Printf("out=%08b\n", out)
+	out >>= (8 - bitsInLast)
+	fmt.Printf("out=%08b\n", out)
+	return out
+	/*
+		out := make([]byte, len(masks))
+		for i, m := range masks {
+			out[i] = uint8(ba.raw[i]) & m
+		}
+		return out
+	*/
 }
 
 // Read8 bits from the bit array as a uint8.
@@ -119,13 +130,9 @@ func (ba *BitArray) Read8(start, length uint64) (uint8, error) {
 	if length > 8 {
 		return 0, fmt.Errorf("truncated result")
 	}
-	bs := ba.Read(start, length)
-	if len(bs) > 1 {
-		return uint8(bs[0]), fmt.Errorf("invalid byte length")
-	}
-	return uint8(bs[0]), nil
+	bs := ba.Read64(start, length)
+	return uint8(bs), nil
 }
-*/
 
 // Bytes returns the compacted bit array.
 func (ba *BitArray) Bytes() []byte {
