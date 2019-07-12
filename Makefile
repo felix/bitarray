@@ -16,8 +16,8 @@ test: lint ## Run tests and create coverage report
 	go test -short -coverprofile=coverage.txt -covermode=atomic ./...
 	go tool cover -html=coverage.txt -o coverage.html
 
-lint: $(GOPATH)/bin/golint ## Lint code
-	$(GOPATH)/bin/golint -set_exit_status ./...
+lint: ## Lint code
+	golint -set_exit_status ./...
 
 .PHONY: golint
 $(GOPATH)/bin/golint:
