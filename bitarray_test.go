@@ -5,127 +5,73 @@ import (
 	"testing"
 )
 
-func TestAdd8(t *testing.T) {
+func TestPack(t *testing.T) {
 	tests := []struct {
-		in       []uint8
+		in       interface{}
 		expected string
 	}{
+		// Types
+		{uint(108), "[11011000]"},
+		{uint8(108), "[11011000]"},
+		{uint16(108), "[11011000]"},
+		{uint32(108), "[11011000]"},
+		{uint64(108), "[11011000]"},
+		{int(108), "[11011000]"},
+		{int8(0xF), "[11110000]"},
+		{int16(108), "[11011000]"},
+		{int32(108), "[11011000]"},
+		{int64(108), "[11011000]"},
+		{[]byte{0x6c}, "[11011000]"},
+		{[]uint{108}, "[11011000]"},
+		{[]int{108}, "[11011000]"},
+		{[]int8{108}, "[11011000]"},
+		{[]int16{108}, "[11011000]"},
+		{[]int32{108}, "[11011000]"},
+		{[]int64{108}, "[11011000]"},
+		// Zero
+		{uint(0), "[00000000]"},
+		{uint8(0), "[00000000]"},
+		{uint16(0), "[00000000]"},
+		{uint32(0), "[00000000]"},
+		{uint64(0), "[00000000]"},
+		{int(0), "[00000000]"},
+		{int8(0), "[00000000]"},
+		{int16(0), "[00000000]"},
+		{int32(0), "[00000000]"},
+		{int64(0), "[00000000]"},
+		{[]byte{0}, "[00000000]"},
+		{[]uint{0}, "[00000000]"},
+		{[]int{0}, "[00000000]"},
+		{[]int8{0}, "[00000000]"},
+		{[]int16{0}, "[00000000]"},
+		{[]int32{0}, "[00000000]"},
+		{[]int64{0}, "[00000000]"},
+		// Adding a zero
+		{[]int{1, 0, 23}, "[10101110]"},
+		{[]uint16{1, 0, 23}, "[10101110]"},
+		{[]uint32{1, 0, 23}, "[10101110]"},
+		{[]uint64{1, 0, 23}, "[10101110]"},
+		// Cases
 		{[]uint8{0xFF, 0xFF}, "[11111111 11111111]"},
-		{[]uint8{1, 128, 23}, "[11000000 01011100]"},
-		{[]uint8{0xFF, 1, 2, 1, 4, 1, 1}, "[11111111 11011001 10000000]"},
-	}
-
-	ba := BitArray{}
-
-	for _, tt := range tests {
-		for _, i := range tt.in {
-			ba.Add8(i)
-		}
-		actual := fmt.Sprintf("%08b", ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("expected %q got %q", tt.expected, actual)
-		}
-		ba.Reset()
-	}
-}
-
-func TestAdd16(t *testing.T) {
-	tests := []struct {
-		in       []uint16
-		expected string
-	}{
-		{[]uint16{0xFF, 0xFF}, "[11111111 11111111]"},
-		{[]uint16{1, 128, 23}, "[11000000 01011100]"},
-		{[]uint16{0xFF, 1, 2, 1, 4, 1, 1}, "[11111111 11011001 10000000]"},
-		{[]uint16{0xFFFF, 1}, "[11111111 11111111 10000000]"},
-	}
-
-	ba := BitArray{}
-
-	for _, tt := range tests {
-		for _, i := range tt.in {
-			ba.Add16(i)
-		}
-		actual := fmt.Sprintf("%08b", ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("expected %q got %q", tt.expected, actual)
-		}
-		ba.Reset()
-	}
-}
-
-func TestAdd32(t *testing.T) {
-	tests := []struct {
-		in       []uint32
-		expected string
-	}{
-		{[]uint32{0xFF, 0xFF}, "[11111111 11111111]"},
-		{[]uint32{1, 128, 23}, "[11000000 01011100]"},
-		{[]uint32{0xFF, 1, 2, 1, 4, 1, 1}, "[11111111 11011001 10000000]"},
-		{[]uint32{0xFFFFFF, 1}, "[11111111 11111111 11111111 10000000]"},
-	}
-
-	ba := BitArray{}
-
-	for _, tt := range tests {
-		for _, i := range tt.in {
-			ba.Add32(i)
-		}
-		actual := fmt.Sprintf("%08b", ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("expected %q got %q", tt.expected, actual)
-		}
-		ba.Reset()
-	}
-}
-
-func TestAdd64(t *testing.T) {
-	tests := []struct {
-		in       []uint64
-		expected string
-	}{
-		{[]uint64{0xFF, 0xFF}, "[11111111 11111111]"},
-		{[]uint64{1, 128, 23}, "[11000000 01011100]"},
-		{[]uint64{0xFF, 1, 2, 1, 4, 1, 1}, "[11111111 11011001 10000000]"},
-		{[]uint64{0xFFFFFFFF, 1}, "[11111111 11111111 11111111 11111111 10000000]"},
-	}
-
-	ba := BitArray{}
-
-	for _, tt := range tests {
-		for _, i := range tt.in {
-			ba.Add64(i)
-		}
-		actual := fmt.Sprintf("%08b", ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("expected %q got %q", tt.expected, actual)
-		}
-		ba.Reset()
-	}
-}
-
-func TestRead8(t *testing.T) {
-	tests := []struct {
-		ba       *BitArray
-		s, l     uint64 // start and length
-		expected string
-	}{
-		{&BitArray{raw: []byte{0xff}, bits: 8}, 0, 8, "11111111"},
-		{&BitArray{raw: []byte{0xff}, bits: 8}, 0, 1, "00000001"},
-		{&BitArray{raw: []byte{0xfe}, bits: 8}, 0, 8, "11111110"},
-		{&BitArray{raw: []byte{0x03}, bits: 8}, 7, 1, "00000001"},
-		{&BitArray{raw: []byte{0xd0}, bits: 4}, 0, 4, "00001101"},
+		{[]uint8{0xFF, 0xF0}, "[11111111 11110000]"},
+		{[]uint8{0xF0, 0xF0}, "[11110000 11110000]"},
+		{[]uint8{0xF0, 0xF0, 1}, "[11110000 11110000 10000000]"},
+		{[]int{1, 128, 23}, "[11000000 01011100]"},
+		{[]int{1, 129, 23}, "[11000000 11011100]"},
+		{[]interface{}{uint8(0xFF), 1, 2, 1, 4, 1, 1}, "[11111111 11011001 10000000]"},
 	}
 
 	for _, tt := range tests {
-		a, err := tt.ba.Read8(tt.s, tt.l)
+		ba, err := Pack(tt.in)
 		if err != nil {
-			t.Errorf("failed with %q", err)
+			t.Fatalf("%v => failed %q", tt.in, err)
 		}
-		actual := fmt.Sprintf("%08b", a)
-		fmt.Printf("expected=%s actual=%s\n", tt.expected, actual)
+		actual := fmt.Sprintf("%08b", ba.Bytes())
 		if actual != tt.expected {
-			t.Errorf("expected %q got %q", tt.expected, actual)
+			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
+		}
+		if actual != ba.String() {
+			t.Errorf("%v => expected %q got %q", tt.in, actual, ba.String())
 		}
 	}
 }

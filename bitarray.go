@@ -3,141 +3,182 @@ package bitarray
 import (
 	"fmt"
 	"math/bits"
-	"sync"
 )
 
-// BitArray definition.
+// BitArray def
 type BitArray struct {
-	raw  []byte
-	bits int
-	lock sync.RWMutex
+	raw   []byte
+	avail uint
 }
 
-// Reset the bit array.
-func (ba *BitArray) Reset() {
-	ba.raw = nil
-	ba.bits = 0
+// New create an empty BitArray.
+func New() *BitArray {
+	return &BitArray{
+		raw:   make([]byte, 1),
+		avail: 8,
+	}
 }
 
-// Add64 integers onto the bit array.
-func (ba *BitArray) Add64(in uint64) {
-	ba.lock.Lock()
-	defer ba.lock.Unlock()
-
-	spare := uint64((len(ba.raw) * 8) - ba.bits)
-	toAdd := uint64(bits.Len64(in))
-
-	// fmt.Printf("  in=%064b\n", in)
-	// fmt.Printf("start spare=%d toadd=%d\n", spare, toAdd)
-
-	// Deal with spare first
-	if spare > 0 {
-		var next uint8
-		if toAdd > spare {
-			//fmt.Printf("more spare=%d toadd=%d\n", spare, toAdd)
-			// Shift in to right, align with spare bits
-			next = uint8(in >> (toAdd - spare))
-			ba.bits += int(spare)
-			toAdd -= spare
-		} else {
-			// Should fit in spare
-			//fmt.Printf("fit spare=%d toadd=%d\n", spare, toAdd)
-			next = uint8((in << (spare - toAdd)) & 0xff)
-			//fmt.Printf("next=%08b\n", next)
-			ba.bits += int(toAdd)
-			toAdd = 0
-		}
-
-		// Work on the last byte
-		l := len(ba.raw) - 1
-		next = uint8(ba.raw[l]) | next
-		ba.raw[l] = byte(next)
-		spare = uint64((len(ba.raw) * 8) - ba.bits)
-		//fmt.Printf("post-spare bits=%d spare=%d toadd=%d\n", ba.bits, spare, toAdd)
-	}
-
-	// Chunk per byte
-	for i := uint64(0); i < toAdd; i += 8 {
-		//fmt.Printf("looping %d bits=%d spare=%d toadd=%d\n", i, ba.bits, spare, toAdd)
-		next := (in << (64 - toAdd)) & 0xff00000000000000
-		//fmt.Printf("next=%064b\n", next)
-		next >>= 56
-		//fmt.Printf("next=%08b\n", next)
-		ba.raw = append(ba.raw, byte(next))
-	}
-	ba.bits += int(toAdd)
-	//spare = uint64((len(ba.raw) * 8) - ba.bits)
-	//fmt.Printf("spare=%d bits=%d\n", spare, ba.bits)
-}
-
-// Add32 integers onto the bit array.
-func (ba *BitArray) Add32(in uint32) { ba.Add64(uint64(in)) }
-
-// Add16 integers onto the bit array.
-func (ba *BitArray) Add16(in uint16) { ba.Add64(uint64(in)) }
-
-// Add8 integers onto the bit array.
-func (ba *BitArray) Add8(in uint8) { ba.Add64(uint64(in)) }
-
-// Read64 bits from the bit array.
-func (ba *BitArray) Read64(start, length uint64) uint64 {
-	ba.lock.RLock()
-	defer ba.lock.RUnlock()
-	//bs := ba.raw[startB:endB]
-	fmt.Printf("raw=%08b start=%d length=%d\n", ba.raw, start, length)
-
-	// First relevant byte
-	firstByte := int(start / 8)
-	lastByte := int((start + length - 1) / 8)
-	fmt.Printf("firstByte=%d lastByte=%d\n", firstByte, lastByte)
-	// Number of bits in the last byte
-	bitsInLast := uint(start+length) - uint(lastByte*8)
-
-	fmt.Printf("bitsinlast=%d\n", bitsInLast)
-
-	// A mask for each byte
-	masks := make([]uint8, lastByte+1-firstByte)
-	for i := start; i < (start + length); i++ {
-		// The bit we want is in byteIdx byte
-		byteIdx := i / 8
-		//b := ba.raw[byteIdx]
-
-		// bitIdx is the bit offset in this byte
-		bitIdx := i - (byteIdx * 8)
-		masks[byteIdx] |= (1 << (7 - bitIdx))
-		fmt.Printf("byteIdx=%d bitIdx=%d mask=%08b\n", byteIdx, bitIdx, masks[byteIdx])
-	}
-	var out uint64
-	for i, m := range masks {
-		b := uint8(ba.raw[i]) & m
-		out |= uint64(b << uint(i))
-	}
-	fmt.Printf("out=%08b\n", out)
-	out >>= (8 - bitsInLast)
-	fmt.Printf("out=%08b\n", out)
-	return out
-	/*
-		out := make([]byte, len(masks))
-		for i, m := range masks {
-			out[i] = uint8(ba.raw[i]) & m
-		}
-		return out
-	*/
-}
-
-// Read8 bits from the bit array as a uint8.
-func (ba *BitArray) Read8(start, length uint64) (uint8, error) {
-	if length > 8 {
-		return 0, fmt.Errorf("truncated result")
-	}
-	bs := ba.Read64(start, length)
-	return uint8(bs), nil
-}
-
-// Bytes returns the compacted bit array.
-func (ba *BitArray) Bytes() []byte {
-	ba.lock.RLock()
-	defer ba.lock.RUnlock()
-
+// Bytes returns the BitArray as bytes.
+func (ba BitArray) Bytes() []byte {
 	return ba.raw
+}
+
+// Bytes returns the BitArray as bytes.
+func (ba BitArray) String() string {
+	return fmt.Sprintf("%08b", ba.raw)
+}
+
+// Add8 adds a uint8 to the BitArray.
+func (ba *BitArray) Add8(u uint8) {
+	if u == 0 {
+		ba.avail--
+		return
+	}
+	ba.add(u)
+}
+
+func (ba *BitArray) add(u uint8) {
+	var mask uint8
+	if ba.avail == 0 {
+		ba.raw = append(ba.raw, byte(0))
+		ba.avail += 8
+	}
+	n := uint(bits.Len8(u))
+	shift := int(ba.avail - n)
+	if shift < 0 {
+		// It doesn't fit
+		mask = u >> abs(shift)
+		ba.raw[len(ba.raw)-1] |= byte(mask)
+		ba.raw = append(ba.raw, byte(0))
+		shift = 8 + shift
+	}
+	mask = u << abs(shift)
+	ba.raw[len(ba.raw)-1] |= byte(mask)
+	ba.avail = abs(shift)
+}
+
+// Add16 adds a uint8 to the BitArray.
+func (ba *BitArray) Add16(u uint16) {
+	if u == 0 {
+		ba.avail--
+		return
+	}
+	ba.add(uint8(u >> 8))
+	ba.add(uint8(u))
+}
+
+// Add32 adds a uint32 to the BitArray.
+func (ba *BitArray) Add32(u uint32) {
+	if u == 0 {
+		ba.avail--
+		return
+	}
+	ba.add(uint8(u >> 24))
+	ba.add(uint8(u >> 16))
+	ba.add(uint8(u >> 8))
+	ba.add(uint8(u))
+}
+
+// Add64 adds a uint64 to the BitArray.
+func (ba *BitArray) Add64(u uint64) {
+	if u == 0 {
+		ba.avail--
+		return
+	}
+	ba.add(uint8(u >> 56))
+	ba.add(uint8(u >> 48))
+	ba.add(uint8(u >> 40))
+	ba.add(uint8(u >> 32))
+	ba.add(uint8(u >> 24))
+	ba.add(uint8(u >> 16))
+	ba.add(uint8(u >> 8))
+	ba.add(uint8(u))
+}
+
+// Pack stuff together into existing BitArray.
+func (ba *BitArray) Pack(fields ...interface{}) error {
+	for _, f := range fields {
+		switch c := f.(type) {
+		case uint:
+			ba.Add32(uint32(c))
+		case uint8:
+			ba.Add8(c)
+		case uint16:
+			ba.Add16(c)
+		case uint32:
+			ba.Add32(c)
+		case uint64:
+			ba.Add64(c)
+		case []uint:
+			for _, i := range c {
+				ba.Add32(uint32(i))
+			}
+		case []uint8:
+			for _, i := range c {
+				ba.Add8(i)
+			}
+		case []uint16:
+			for _, i := range c {
+				ba.Add16(i)
+			}
+		case []uint32:
+			for _, i := range c {
+				ba.Add32(i)
+			}
+		case []uint64:
+			for _, i := range c {
+				ba.Add64(i)
+			}
+		case int:
+			ba.Add32(uint32(c))
+		case int8:
+			ba.Add8(uint8(c))
+		case int16:
+			ba.Add16(uint16(c))
+		case int32:
+			ba.Add32(uint32(c))
+		case int64:
+			ba.Add64(uint64(c))
+		case []int:
+			for _, i := range c {
+				ba.Add32(uint32(i))
+			}
+		case []int8:
+			for _, i := range c {
+				ba.Add8(uint8(i))
+			}
+		case []int16:
+			for _, i := range c {
+				ba.Add16(uint16(i))
+			}
+		case []int32:
+			for _, i := range c {
+				ba.Add32(uint32(i))
+			}
+		case []int64:
+			for _, i := range c {
+				ba.Add64(uint64(i))
+			}
+		case []interface{}:
+			return ba.Pack(c...)
+		default:
+			return fmt.Errorf("unable to pack %T", c)
+		}
+	}
+	return nil
+}
+
+// Pack stuff together into a BitArray.
+func Pack(fields ...interface{}) (*BitArray, error) {
+	out := New()
+	err := out.Pack(fields...)
+	return out, err
+}
+
+func abs(i int) uint {
+	if i < 0 {
+		return uint(-i)
+	}
+	return uint(i)
 }
