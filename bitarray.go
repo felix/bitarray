@@ -15,7 +15,8 @@ type BitArray struct {
 // New create an empty BitArray.
 func New(b []byte, padding uint) *BitArray {
 	out := &BitArray{}
-	out.Pack(b)
+	out.raw = b
+	//fmt.Printf("new raw=%08b\n", out.raw)
 	out.avail = padding
 	return out
 }
@@ -23,6 +24,11 @@ func New(b []byte, padding uint) *BitArray {
 // Bytes returns the BitArray as bytes.
 func (ba BitArray) Bytes() []byte {
 	return ba.raw
+}
+
+// Len returns the BitArray length.
+func (ba BitArray) Len() uint64 {
+	return uint64(len(ba.raw))*8 - uint64(ba.avail)
 }
 
 // Bytes returns the BitArray as bytes.
@@ -39,6 +45,13 @@ func (ba BitArray) Test(i uint64) bool {
 	}
 	mask := 1 << (7 - offset)
 	return (ba.raw[idx] & byte(mask)) != 0
+}
+
+// Pad adds a zero padding.
+func (ba *BitArray) Pad(n uint64) {
+	for i := uint64(0); i < n; i++ {
+		ba.Add8(uint8(0))
+	}
 }
 
 // Add8 adds a uint8 to the BitArray.
@@ -166,40 +179,30 @@ func Pack(fields ...interface{}) (*BitArray, error) {
 
 // Slice reads a range from the BitArray.
 func (ba *BitArray) Slice(start, length uint64) (*BitArray, error) {
-	first := start / 8
-	last := (start + length - 1) / 8
-	if last > uint64((len(ba.raw)*8)-int(ba.avail)) {
-		return nil, fmt.Errorf("out of bounds")
-	}
-	prePad := uint(start - (first * 8))
-	postPad := 8 - ((start + length) % 8)
-
 	out := new(BitArray)
-
-	if first == last {
-		postPad = 8 - (start + length)
-		b := ba.raw[first] & (0xFF >> prePad)
-		b &= (0xFF << postPad)
-		out.Add8(b >> postPad)
-		return out, nil
+	for i := start; i < (start + length); i++ {
+		if ba.Test(i) {
+			out.Add8(1)
+		} else {
+			out.Add8(0)
+		}
 	}
-
-	out.Add8(ba.raw[first] & (0xFF >> prePad))
-	if last-first > 0 {
-		out.Pack(ba.raw[first+1 : last])
-	}
-	out.Add8((ba.raw[last] & (0xFF << postPad)) >> postPad)
 	return out, nil
 }
 
 // ReadBig reads a big.Int from the BitArray.
 func (ba *BitArray) ReadBig(start, length uint64) (*big.Int, error) {
+	fmt.Printf("about to read from=%08b start=%d l=%d\n", ba.raw, start, length)
 	b, err := ba.Slice(start, length)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("read from=%x start=%d l=%d %08b avail=%d\n", ba.raw, start, length, b.raw, b.avail)
 	out := new(big.Int).SetBytes(b.Bytes())
-	return out.Rsh(out, b.avail), nil
+	shifted := out.Rsh(out, b.avail)
+	fmt.Printf("shifted=%08b\n", shifted.Bytes())
+	//return out.Rsh(out, b.avail), nil
+	return shifted, nil
 }
 
 func (ba *BitArray) add(u uint8, zero bool) {
@@ -231,4 +234,11 @@ func abs(i int) uint {
 		return uint(-i)
 	}
 	return uint(i)
+}
+
+func min(a, b uint64) uint64 {
+	if a < b {
+		return a
+	}
+	return b
 }

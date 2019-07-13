@@ -81,15 +81,22 @@ func TestSlice(t *testing.T) {
 		ba       *BitArray
 		s, l     uint64 // start and length
 		expected string
+		avail    uint
 	}{
-		{&BitArray{raw: []byte{0xff}, avail: 0}, 0, 8, "[11111111]"},
-		{&BitArray{raw: []byte{0xff}, avail: 0}, 0, 1, "[10000000]"},
-		{&BitArray{raw: []byte{0xfe}, avail: 0}, 0, 8, "[11111110]"},
-		{&BitArray{raw: []byte{0x03}, avail: 0}, 7, 1, "[10000000]"},
-		{&BitArray{raw: []byte{0xd0}, avail: 4}, 0, 4, "[11010000]"},
+		{&BitArray{[]byte{0xff}, 0}, 0, 8, "[11111111]", 0},
+		{&BitArray{[]byte{0xff}, 0}, 0, 1, "[10000000]", 7},
+		{&BitArray{[]byte{0xfe}, 0}, 0, 8, "[11111110]", 0},
+		{&BitArray{[]byte{0x03}, 0}, 7, 1, "[10000000]", 7},
+		{&BitArray{[]byte{0xd0}, 4}, 0, 4, "[11010000]", 4},
 		// Multiple bytes
-		{&BitArray{raw: []byte{0xd0, 0xff}, avail: 0}, 0, 9, "[11010000 10000000]"},
-		{&BitArray{raw: []byte{0x0f, 0xf0}, avail: 0}, 4, 8, "[11111111]"},
+		{&BitArray{[]byte{0xd0, 0xff}, 0}, 0, 9, "[11010000 10000000]", 7},
+		{&BitArray{[]byte{0x0f, 0xf0}, 0}, 4, 8, "[11111111]", 0},
+		// Cases
+		// 10010110 00101100 01001001 => 1000101
+		{&BitArray{[]byte{0x96, 0x2c, 0x49}, 0}, 6, 7, "[10001010]", 1},
+		// 10010110 00101100 01001001 01110010 00101011 10000000
+		//                               ^^^^^ ^^
+		{&BitArray{[]byte{0x96, 0x2c, 0x49, 0x72, 0x2b, 0x80}, 0}, 27, 7, "[10010000]", 1},
 	}
 
 	for _, tt := range tests {
@@ -100,6 +107,9 @@ func TestSlice(t *testing.T) {
 		actual := fmt.Sprintf("%08b", a.Bytes())
 		if actual != tt.expected {
 			t.Errorf("%x %d,%d => expected %q got %q", tt.ba.raw, tt.s, tt.l, tt.expected, actual)
+		}
+		if a.avail != tt.avail {
+			t.Errorf("%x %d,%d => expected avail %d got %d", tt.ba.raw, tt.s, tt.l, tt.avail, a.avail)
 		}
 	}
 }
