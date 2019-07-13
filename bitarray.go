@@ -2,6 +2,7 @@ package bitarray
 
 import (
 	"fmt"
+	"math/big"
 	"math/bits"
 )
 
@@ -174,6 +175,44 @@ func Pack(fields ...interface{}) (*BitArray, error) {
 	out := New()
 	err := out.Pack(fields...)
 	return out, err
+}
+
+// Slice reads a range from the BitArray.
+func (ba *BitArray) Slice(start, length uint64) (*BitArray, error) {
+	first := start / 8
+	last := (start + length - 1) / 8
+	if last > uint64((len(ba.raw)*8)-int(ba.avail)) {
+		return nil, fmt.Errorf("out of bounds")
+	}
+	prePad := uint(start - (first * 8))
+	postPad := 8 - ((start + length) % 8)
+
+	out := New()
+
+	if first == last {
+		postPad = 8 - (start + length)
+		b := ba.raw[first] & (0xFF >> prePad)
+		b &= (0xFF << postPad)
+		out.Add8(b >> postPad)
+		return out, nil
+	}
+
+	out.Add8(ba.raw[first] & (0xFF >> prePad))
+	if last-first > 0 {
+		out.Pack(ba.raw[first+1 : last])
+	}
+	out.Add8((ba.raw[last] & (0xFF << postPad)) >> postPad)
+	return out, nil
+}
+
+// ReadBig reads a big.Int from the BitArray.
+func (ba *BitArray) ReadBig(start, length uint64) (*big.Int, error) {
+	b, err := ba.Slice(start, length)
+	if err != nil {
+		return nil, err
+	}
+	out := new(big.Int).SetBytes(b.Bytes())
+	return out.Rsh(out, b.avail), nil
 }
 
 func abs(i int) uint {
