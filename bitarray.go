@@ -9,11 +9,11 @@ import (
 // BitArray def
 type BitArray struct {
 	raw   []byte
-	avail uint
+	avail uint8
 }
 
 // New create an empty BitArray.
-func New(b []byte, padding uint) *BitArray {
+func New(b []byte, padding uint8) *BitArray {
 	out := &BitArray{}
 	out.raw = b
 	//fmt.Printf("new raw=%08b\n", out.raw)
@@ -38,6 +38,9 @@ func (ba BitArray) String() string {
 
 // Test returns true/false on bit at offset i.
 func (ba BitArray) Test(i uint64) bool {
+	// if i >= ba.Len() {
+	// 	return false
+	// }
 	idx := i / 8
 	offset := i % 8
 	if idx >= uint64(len(ba.raw)) {
@@ -47,6 +50,28 @@ func (ba BitArray) Test(i uint64) bool {
 	return (ba.raw[idx] & byte(mask)) != 0
 }
 
+// Set a single bit at position n.
+func (ba *BitArray) Set(n uint64) {
+	if n >= ba.Len() {
+		return
+	}
+	idx := n / 8
+	offset := n % 8
+	mask := 1 << (7 - offset)
+	ba.raw[idx] |= byte(mask)
+}
+
+// Unset a single bit at position n.
+func (ba *BitArray) Unset(n uint64) {
+	if n >= ba.Len() {
+		return
+	}
+	idx := n / 8
+	offset := n % 8
+	mask := 1 << (7 - offset)
+	ba.raw[idx] &^= byte(mask)
+}
+
 // Pad adds a zero padding.
 func (ba *BitArray) Pad(n uint64) {
 	for i := uint64(0); i < n; i++ {
@@ -54,47 +79,82 @@ func (ba *BitArray) Pad(n uint64) {
 	}
 }
 
+// AddBit adds a single bit to the array.
+func (ba *BitArray) AddBit(u uint8) {
+	ba.grow()
+	if u == 0 {
+		ba.Unset(ba.Len())
+	} else {
+		ba.Set(ba.Len())
+	}
+	ba.avail--
+}
+
 // Add8 adds a uint8 to the BitArray.
 func (ba *BitArray) Add8(u uint8) {
-	ba.add(u, u == 0)
+	if u == 0 {
+		ba.AddBit(0)
+		return
+	}
+	ba.add(u)
+}
+
+// Add8N adds a uint8 padded to the left for a width of |n|.
+func (ba *BitArray) Add8N(u, n uint8) {
+	l := uint64(bits.Len8(u))
+	pad := min(uint64(n)-l, 8-l)
+	ba.addN(u, uint8(l+pad))
 }
 
 // Add16 adds a uint8 to the BitArray.
 func (ba *BitArray) Add16(u uint16) {
 	if u == 0 {
-		ba.add(0, true)
+		ba.AddBit(0)
 		return
 	}
-	ba.add(uint8(u>>8), false)
-	ba.add(uint8(u), false)
+	ba.add(uint8(u >> 8))
+	ba.add(uint8(u))
+}
+
+// Add16N adds a uint16 padded to the left for a width of |n|.
+func (ba *BitArray) Add16N(u, n uint16) {
+	// Number of uint8s required
+	c := uint(n / 8)
+	for i := c; i >= 0; i-- {
+		w := uint8(8)
+		if i == 0 && n%8 != 0 {
+			w = uint8(n % 8)
+		}
+		ba.addN(uint8(u>>uint8(i*8)), w)
+	}
 }
 
 // Add32 adds a uint32 to the BitArray.
 func (ba *BitArray) Add32(u uint32) {
 	if u == 0 {
-		ba.add(0, true)
+		ba.AddBit(0)
 		return
 	}
-	ba.add(uint8(u>>24), false)
-	ba.add(uint8(u>>16), false)
-	ba.add(uint8(u>>8), false)
-	ba.add(uint8(u), false)
+	ba.add(uint8(u >> 24))
+	ba.add(uint8(u >> 16))
+	ba.add(uint8(u >> 8))
+	ba.add(uint8(u))
 }
 
 // Add64 adds a uint64 to the BitArray.
 func (ba *BitArray) Add64(u uint64) {
 	if u == 0 {
-		ba.add(0, true)
+		ba.AddBit(0)
 		return
 	}
-	ba.add(uint8(u>>56), false)
-	ba.add(uint8(u>>48), false)
-	ba.add(uint8(u>>40), false)
-	ba.add(uint8(u>>32), false)
-	ba.add(uint8(u>>24), false)
-	ba.add(uint8(u>>16), false)
-	ba.add(uint8(u>>8), false)
-	ba.add(uint8(u), false)
+	ba.add(uint8(u >> 56))
+	ba.add(uint8(u >> 48))
+	ba.add(uint8(u >> 40))
+	ba.add(uint8(u >> 32))
+	ba.add(uint8(u >> 24))
+	ba.add(uint8(u >> 16))
+	ba.add(uint8(u >> 8))
+	ba.add(uint8(u))
 }
 
 // Pack stuff together into existing BitArray.
@@ -199,24 +259,21 @@ func (ba *BitArray) ReadBig(start, length uint64) (*big.Int, error) {
 	}
 	fmt.Printf("read from=%x start=%d l=%d %08b avail=%d\n", ba.raw, start, length, b.raw, b.avail)
 	out := new(big.Int).SetBytes(b.Bytes())
-	shifted := out.Rsh(out, b.avail)
+	shifted := out.Rsh(out, uint(b.avail))
 	fmt.Printf("shifted=%08b\n", shifted.Bytes())
 	//return out.Rsh(out, b.avail), nil
 	return shifted, nil
 }
 
-func (ba *BitArray) add(u uint8, zero bool) {
+func (ba *BitArray) add(u uint8) {
+	n := uint8(bits.Len8(u))
+	ba.addN(u, n)
+}
+
+func (ba *BitArray) addN(u, n uint8) {
+	ba.grow()
 	var mask uint8
-	if ba.avail == 0 {
-		ba.raw = append(ba.raw, byte(0))
-		ba.avail += 8
-	}
-	if zero {
-		ba.avail--
-		return
-	}
-	n := uint(bits.Len8(u))
-	shift := int(ba.avail - n)
+	shift := int8(uint8(ba.avail) - n)
 	if shift < 0 {
 		// It doesn't fit
 		mask = u >> abs(shift)
@@ -229,11 +286,18 @@ func (ba *BitArray) add(u uint8, zero bool) {
 	ba.avail = abs(shift)
 }
 
-func abs(i int) uint {
-	if i < 0 {
-		return uint(-i)
+func (ba *BitArray) grow() {
+	if ba.avail <= 0 {
+		ba.raw = append(ba.raw, byte(0))
+		ba.avail += 8
 	}
-	return uint(i)
+}
+
+func abs(i int8) uint8 {
+	if i < 0 {
+		return uint8(-i)
+	}
+	return uint8(i)
 }
 
 func min(a, b uint64) uint64 {

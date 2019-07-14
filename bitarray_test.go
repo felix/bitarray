@@ -81,7 +81,7 @@ func TestSlice(t *testing.T) {
 		ba       *BitArray
 		s, l     uint64 // start and length
 		expected string
-		avail    uint
+		avail    uint8
 	}{
 		{&BitArray{[]byte{0xff}, 0}, 0, 8, "[11111111]", 0},
 		{&BitArray{[]byte{0xff}, 0}, 0, 1, "[10000000]", 7},
@@ -139,6 +139,34 @@ func TestReadBig(t *testing.T) {
 		actual := b.Uint64()
 		if actual != tt.expected {
 			t.Errorf("%x %d,%d => expected %d got %d", tt.ba.raw, tt.s, tt.l, tt.expected, actual)
+		}
+	}
+}
+
+func TestAdd8N(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		in       uint8
+		l        uint8
+		expected string
+	}{
+		{&BitArray{[]byte{0xF0}, 4}, 1, 1, "[11111000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 2, "[11110100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 3, "[11110010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 4, "[11110001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 5, "[11110000 10000000]"},
+	}
+
+	for _, tt := range tests {
+		lBefore := tt.ba.Len()
+		tt.ba.Add8N(tt.in, tt.l)
+		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
+		}
+		expected := lBefore + uint64(tt.l)
+		if tt.ba.Len() != expected {
+			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
 		}
 	}
 }
