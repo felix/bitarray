@@ -143,6 +143,62 @@ func TestReadBig(t *testing.T) {
 	}
 }
 
+func TestShiftL(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		s        uint8
+		expected string
+	}{
+		{&BitArray{[]byte{0x01}, 1}, 1, "[00000010]"},
+		{&BitArray{[]byte{0x01}, 1}, 2, "[00000100]"},
+		{&BitArray{[]byte{0x01}, 1}, 3, "[00001000]"},
+		{&BitArray{[]byte{0x01}, 1}, 4, "[00010000]"},
+		{&BitArray{[]byte{0x01}, 1}, 5, "[00100000]"},
+		{&BitArray{[]byte{0x01}, 1}, 6, "[01000000]"},
+		{&BitArray{[]byte{0x01}, 1}, 7, "[10000000]"},
+		{&BitArray{[]byte{0x01}, 1}, 8, "[00000000]"},
+		// Across a byte
+		{&BitArray{[]byte{0x01, 0x01}, 9}, 5, "[00100000 00100000]"},
+		{&BitArray{[]byte{0x01, 0x01}, 9}, 8, "[00000001 00000000]"},
+	}
+
+	for _, tt := range tests {
+		tt.ba.ShiftL(tt.s)
+		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%d => expected %s got %s", tt.s, tt.expected, actual)
+		}
+	}
+}
+
+func TestShiftR(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		s        uint8
+		expected string
+	}{
+		{&BitArray{[]byte{0x80}, 8}, 1, "[01000000]"},
+		{&BitArray{[]byte{0x80}, 8}, 2, "[00100000]"},
+		{&BitArray{[]byte{0x80}, 8}, 3, "[00010000]"},
+		{&BitArray{[]byte{0x80}, 8}, 4, "[00001000]"},
+		{&BitArray{[]byte{0x80}, 8}, 5, "[00000100]"},
+		{&BitArray{[]byte{0x80}, 8}, 6, "[00000010]"},
+		{&BitArray{[]byte{0x80}, 8}, 7, "[00000001]"},
+		{&BitArray{[]byte{0x80}, 8}, 8, "[00000000]"},
+		// Across a byte
+		{&BitArray{[]byte{0x80, 0x80}, 16}, 5, "[00000100 00000100]"},
+		{&BitArray{[]byte{0x80, 0x80}, 16}, 8, "[00000000 10000000]"},
+	}
+
+	for _, tt := range tests {
+		tt.ba.ShiftR(tt.s)
+		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%d => expected %s got %s", tt.s, tt.expected, actual)
+		}
+	}
+}
+
 func TestAdd8N(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray

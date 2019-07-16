@@ -293,6 +293,46 @@ func (ba *BitArray) grow() {
 	}
 }
 
+// ShiftL shifts all bits to the left and returns those
+// shifted off. s cannot be larger than 8.
+func (ba *BitArray) ShiftL(s uint8) (r byte) {
+	if s > 8 {
+		return
+	}
+	if n := len(ba.raw); n > 0 {
+		_s := 8 - s
+		b1 := ba.raw[n-1]
+		r = b1 >> _s
+		for i := 0; i < n-1; i++ {
+			b := b1
+			b1 = ba.raw[i+1]
+			ba.raw[i] = b<<s | b1>>_s
+		}
+		ba.raw[n-1] = b1 << s
+	}
+	return
+}
+
+// ShiftR shifts all bits to the right and returns those
+// shifted off. s cannot be larger than 8.
+func (ba *BitArray) ShiftR(s uint8) (r byte) {
+	if s > 8 {
+		return
+	}
+	if n := len(ba.raw); n > 0 {
+		_s := 8 - s
+		b1 := ba.raw[0]
+		r = b1 << _s
+		for i := n - 1; i > 0; i-- {
+			b := b1
+			b1 = ba.raw[i-1]
+			ba.raw[i] = b>>s | b1<<_s
+		}
+		ba.raw[0] = b1 >> s
+	}
+	return
+}
+
 func abs(i int8) uint8 {
 	if i < 0 {
 		return uint8(-i)
