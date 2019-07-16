@@ -247,6 +247,8 @@ func TestAdd16N(t *testing.T) {
 		{&BitArray{[]byte{0xF0}, 4}, 1, 11, "[11110000 00000010]"},
 		{&BitArray{[]byte{0xF0}, 4}, 1, 12, "[11110000 00000001]"},
 		{&BitArray{[]byte{0xF0}, 4}, 1, 13, "[11110000 00000000 10000000]"},
+		// Add zero
+		{&BitArray{[]byte{0xF0}, 4}, 0, 6, "[11110000 00000000]"},
 	}
 
 	for _, tt := range tests {
@@ -283,6 +285,8 @@ func TestAdd32N(t *testing.T) {
 		{&BitArray{[]byte{0xF0}, 4}, 1, 11, "[11110000 00000010]"},
 		{&BitArray{[]byte{0xF0}, 4}, 1, 12, "[11110000 00000001]"},
 		{&BitArray{[]byte{0xF0}, 4}, 1, 13, "[11110000 00000000 10000000]"},
+		// Add zero
+		{&BitArray{[]byte{0xF0}, 4}, 0, 6, "[11110000 00000000]"},
 	}
 
 	for _, tt := range tests {
@@ -319,6 +323,8 @@ func TestAdd64N(t *testing.T) {
 		{&BitArray{[]byte{0xF0}, 4}, 1, 11, "[11110000 00000010]"},
 		{&BitArray{[]byte{0xF0}, 4}, 1, 12, "[11110000 00000001]"},
 		{&BitArray{[]byte{0xF0}, 4}, 1, 13, "[11110000 00000000 10000000]"},
+		// Add zero
+		{&BitArray{[]byte{0xF0}, 4}, 0, 6, "[11110000 00000000]"},
 	}
 
 	for _, tt := range tests {

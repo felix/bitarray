@@ -100,10 +100,14 @@ func (ba *BitArray) Add8(u uint8) {
 }
 
 // Add8N adds a uint8 with a fixed width of n.
-func (ba *BitArray) Add8N(u, n uint8) {
-	l := uint64(bits.Len8(u))
-	pad := min(uint64(n)-l, 8-l)
-	ba.addN(u, uint8(l+pad))
+func (ba *BitArray) Add8N(u, s uint8) {
+	n := uint8(bits.Len8(u))
+	for i := uint8(0); i < (s - n); i++ {
+		ba.AddBit(0)
+	}
+	if n != 0 {
+		ba.Add8(u)
+	}
 }
 
 // Add16 adds a uint8 to the BitArray.
@@ -122,7 +126,9 @@ func (ba *BitArray) Add16N(u, s uint16) {
 	for i := uint16(0); i < (s - n); i++ {
 		ba.AddBit(0)
 	}
-	ba.Add16(u)
+	if n != 0 {
+		ba.Add16(u)
+	}
 }
 
 // Add32 adds a uint32 to the BitArray.
@@ -143,7 +149,9 @@ func (ba *BitArray) Add32N(u, s uint32) {
 	for i := uint32(0); i < (s - n); i++ {
 		ba.AddBit(0)
 	}
-	ba.Add32(u)
+	if n != 0 {
+		ba.Add32(u)
+	}
 }
 
 // Add64 adds a uint64 to the BitArray.
@@ -168,7 +176,9 @@ func (ba *BitArray) Add64N(u, s uint64) {
 	for i := uint64(0); i < (s - n); i++ {
 		ba.AddBit(0)
 	}
-	ba.Add64(u)
+	if n != 0 {
+		ba.Add64(u)
+	}
 }
 
 // Pack stuff together into existing BitArray.
