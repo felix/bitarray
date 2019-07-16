@@ -10,14 +10,15 @@ import (
 type BitArray struct {
 	raw   []byte
 	avail uint8
+	size  uint64
 }
 
 // New create an empty BitArray.
-func New(b []byte, padding uint8) *BitArray {
+func New(b []byte, count uint64) *BitArray {
 	out := &BitArray{}
 	out.raw = b
-	//fmt.Printf("new raw=%08b\n", out.raw)
-	out.avail = padding
+	out.size = count
+	out.avail = uint8(uint64(len(b))*8 - count)
 	return out
 }
 
@@ -28,7 +29,7 @@ func (ba BitArray) Bytes() []byte {
 
 // Len returns the BitArray length.
 func (ba BitArray) Len() uint64 {
-	return uint64(len(ba.raw))*8 - uint64(ba.avail)
+	return ba.size
 }
 
 // Bytes returns the BitArray as bytes.
@@ -38,9 +39,9 @@ func (ba BitArray) String() string {
 
 // Test returns true/false on bit at offset i.
 func (ba BitArray) Test(i uint64) bool {
-	// if i >= ba.Len() {
-	// 	return false
-	// }
+	if i > ba.size {
+		return false
+	}
 	idx := i / 8
 	offset := i % 8
 	if idx >= uint64(len(ba.raw)) {
@@ -52,7 +53,7 @@ func (ba BitArray) Test(i uint64) bool {
 
 // Set a single bit at position n.
 func (ba *BitArray) Set(n uint64) {
-	if n >= ba.Len() {
+	if n > ba.size {
 		return
 	}
 	idx := n / 8
@@ -63,7 +64,7 @@ func (ba *BitArray) Set(n uint64) {
 
 // Unset a single bit at position n.
 func (ba *BitArray) Unset(n uint64) {
-	if n >= ba.Len() {
+	if n > ba.size {
 		return
 	}
 	idx := n / 8
@@ -83,10 +84,11 @@ func (ba *BitArray) Pad(n uint64) {
 func (ba *BitArray) AddBit(u uint8) {
 	ba.grow()
 	if u == 0 {
-		ba.Unset(ba.Len())
+		ba.Unset(ba.size)
 	} else {
-		ba.Set(ba.Len())
+		ba.Set(ba.size)
 	}
+	ba.size++
 	ba.avail--
 }
 
@@ -276,15 +278,12 @@ func (ba *BitArray) Slice(start, length uint64) (*BitArray, error) {
 
 // ReadBig reads a big.Int from the BitArray.
 func (ba *BitArray) ReadBig(start, length uint64) (*big.Int, error) {
-	fmt.Printf("about to read from=%08b start=%d l=%d\n", ba.raw, start, length)
 	b, err := ba.Slice(start, length)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("read from=%x start=%d l=%d %08b avail=%d\n", ba.raw, start, length, b.raw, b.avail)
 	out := new(big.Int).SetBytes(b.Bytes())
 	shifted := out.Rsh(out, uint(b.avail))
-	fmt.Printf("shifted=%08b\n", shifted.Bytes())
 	//return out.Rsh(out, b.avail), nil
 	return shifted, nil
 }
@@ -308,6 +307,8 @@ func (ba *BitArray) addN(u, n uint8) {
 	mask = u << abs(shift)
 	ba.raw[len(ba.raw)-1] |= byte(mask)
 	ba.avail = abs(shift)
+	ba.size += uint64(n)
+	ba.norm()
 }
 
 func (ba *BitArray) grow() {
@@ -315,6 +316,15 @@ func (ba *BitArray) grow() {
 		ba.raw = append(ba.raw, byte(0))
 		ba.avail += 8
 	}
+}
+
+// Remove extraneous bits.
+func (ba *BitArray) norm() {
+	n := len(ba.raw)
+	if ba.avail > 8 {
+		ba.raw = ba.raw[:n]
+	}
+	ba.avail = uint8(uint64(n*8) - ba.size)
 }
 
 // ShiftL shifts all bits to the left and returns those
