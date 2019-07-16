@@ -6,14 +6,15 @@ import (
 	"math/bits"
 )
 
-// BitArray def
+// BitArray holds an array of bits.
 type BitArray struct {
 	raw   []byte
 	avail uint8
 	size  uint64
 }
 
-// New create an empty BitArray.
+// New creates a BitArray with the given []byte and count bits.
+// Count is from position 0 of b.
 func New(b []byte, count uint64) *BitArray {
 	out := &BitArray{}
 	out.raw = b
@@ -33,11 +34,12 @@ func (ba BitArray) Len() uint64 {
 }
 
 // Bytes returns the BitArray as bytes.
+// The remaining bits of the last byte are set to zero.
 func (ba BitArray) String() string {
 	return fmt.Sprintf("%08b", ba.raw)
 }
 
-// Test returns true/false on bit at offset i.
+// Test returns true if bit at offset i is 1, false otherwise.
 func (ba BitArray) Test(i uint64) bool {
 	if i > ba.size {
 		return false
@@ -51,7 +53,7 @@ func (ba BitArray) Test(i uint64) bool {
 	return (ba.raw[idx] & byte(mask)) != 0
 }
 
-// Set a single bit at position n.
+// Set a single bit to 1 at position n.
 func (ba *BitArray) Set(n uint64) {
 	if n > ba.size {
 		return
@@ -62,7 +64,7 @@ func (ba *BitArray) Set(n uint64) {
 	ba.raw[idx] |= byte(mask)
 }
 
-// Unset a single bit at position n.
+// Unset a single bit to 0 at position n.
 func (ba *BitArray) Unset(n uint64) {
 	if n > ba.size {
 		return
@@ -73,7 +75,7 @@ func (ba *BitArray) Unset(n uint64) {
 	ba.raw[idx] &^= byte(mask)
 }
 
-// Pad adds a zero padding.
+// Pad adds n zeros as padding.
 func (ba *BitArray) Pad(n uint64) {
 	for i := uint64(0); i < n; i++ {
 		ba.Add8(uint8(0))
@@ -92,7 +94,7 @@ func (ba *BitArray) AddBit(u uint8) {
 	ba.avail--
 }
 
-// Add8 adds a uint8 to the BitArray.
+// Add8 adds a uint8 to the BitArray with leading zeros removed.
 func (ba *BitArray) Add8(u uint8) {
 	if u == 0 {
 		ba.AddBit(0)
@@ -101,7 +103,7 @@ func (ba *BitArray) Add8(u uint8) {
 	ba.add(u)
 }
 
-// Add8N adds a uint8 with a fixed width of n.
+// Add8N adds a uint8 with a fixed width of n, left padded with zeros.
 func (ba *BitArray) Add8N(u, s uint8) {
 	n := uint8(bits.Len8(u))
 	for i := uint8(0); i < (s - n); i++ {
