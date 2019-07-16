@@ -226,3 +226,111 @@ func TestAdd8N(t *testing.T) {
 		}
 	}
 }
+
+func TestAdd16N(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		in       uint16
+		l        uint16
+		expected string
+	}{
+		{&BitArray{[]byte{0xF0}, 4}, 1, 1, "[11111000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 2, "[11110100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 3, "[11110010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 4, "[11110001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 5, "[11110000 10000000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 6, "[11110000 01000000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 7, "[11110000 00100000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 8, "[11110000 00010000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 9, "[11110000 00001000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 10, "[11110000 00000100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 11, "[11110000 00000010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 12, "[11110000 00000001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 13, "[11110000 00000000 10000000]"},
+	}
+
+	for _, tt := range tests {
+		lBefore := tt.ba.Len()
+		tt.ba.Add16N(tt.in, tt.l)
+		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
+		}
+		expected := lBefore + uint64(tt.l)
+		if tt.ba.Len() != expected {
+			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
+		}
+	}
+}
+
+func TestAdd32N(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		in       uint32
+		l        uint32
+		expected string
+	}{
+		{&BitArray{[]byte{0xF0}, 4}, 1, 1, "[11111000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 2, "[11110100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 3, "[11110010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 4, "[11110001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 5, "[11110000 10000000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 6, "[11110000 01000000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 7, "[11110000 00100000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 8, "[11110000 00010000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 9, "[11110000 00001000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 10, "[11110000 00000100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 11, "[11110000 00000010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 12, "[11110000 00000001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 13, "[11110000 00000000 10000000]"},
+	}
+
+	for _, tt := range tests {
+		lBefore := tt.ba.Len()
+		tt.ba.Add32N(tt.in, tt.l)
+		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
+		}
+		expected := lBefore + uint64(tt.l)
+		if tt.ba.Len() != expected {
+			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
+		}
+	}
+}
+
+func TestAdd64N(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		in       uint64
+		l        uint64
+		expected string
+	}{
+		{&BitArray{[]byte{0xF0}, 4}, 1, 1, "[11111000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 2, "[11110100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 3, "[11110010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 4, "[11110001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 5, "[11110000 10000000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 6, "[11110000 01000000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 7, "[11110000 00100000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 8, "[11110000 00010000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 9, "[11110000 00001000]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 10, "[11110000 00000100]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 11, "[11110000 00000010]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 12, "[11110000 00000001]"},
+		{&BitArray{[]byte{0xF0}, 4}, 1, 13, "[11110000 00000000 10000000]"},
+	}
+
+	for _, tt := range tests {
+		lBefore := tt.ba.Len()
+		tt.ba.Add64N(tt.in, tt.l)
+		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
+		}
+		expected := lBefore + uint64(tt.l)
+		if tt.ba.Len() != expected {
+			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
+		}
+	}
+}
