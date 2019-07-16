@@ -17,12 +17,7 @@ test: lint ## Run tests and create coverage report
 	go tool cover -html=coverage.txt -o coverage.html
 
 lint: ## Lint code
-	golint -set_exit_status ./...
-
-.PHONY: golint
-$(GOPATH)/bin/golint:
-	@echo Building golint...
-	go get -u golang.org/x/lint/golint
+	revive ./... || golint -set_exit_status ./... || true
 
 .PHONY: clean
 clean: ## Clean up temp files and binaries
