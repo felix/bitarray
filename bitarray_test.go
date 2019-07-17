@@ -143,6 +143,27 @@ func TestReadBig(t *testing.T) {
 	}
 }
 
+func TestTest(t *testing.T) {
+	tests := []struct {
+		ba       *BitArray
+		in       uint64
+		expected bool
+	}{
+		{New([]byte{0x01}, 8), 0, false},
+		{New([]byte{0x01}, 8), 1, false},
+		{New([]byte{0x01}, 8), 7, true},
+		{New([]byte{0x00, 0x80}, 16), 8, true},
+		{New([]byte{0x00, 0x02}, 16), 14, true},
+	}
+
+	for _, tt := range tests {
+		actual := tt.ba.Test(tt.in)
+		if actual != tt.expected {
+			t.Errorf("%d => expected %t got %t", tt.in, tt.expected, actual)
+		}
+	}
+}
+
 func TestSet(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray

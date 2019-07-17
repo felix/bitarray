@@ -270,9 +270,9 @@ func (ba *BitArray) Slice(start, length uint64) (*BitArray, error) {
 	out := new(BitArray)
 	for i := start; i < (start + length); i++ {
 		if ba.Test(i) {
-			out.Add8(1)
+			out.AddBit(1)
 		} else {
-			out.Add8(0)
+			out.AddBit(0)
 		}
 	}
 	return out, nil
@@ -285,9 +285,7 @@ func (ba *BitArray) ReadBig(start, length uint64) (*big.Int, error) {
 		return nil, err
 	}
 	out := new(big.Int).SetBytes(b.Bytes())
-	shifted := out.Rsh(out, uint(b.avail))
-	//return out.Rsh(out, b.avail), nil
-	return shifted, nil
+	return out.Rsh(out, uint(b.avail)), nil
 }
 
 func (ba *BitArray) add(u uint8) {

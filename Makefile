@@ -7,12 +7,12 @@ help:
 
 .PHONY: test
 test: lint ## Run tests and create coverage report
-	go test -short -coverprofile=coverage.txt -covermode=atomic ./... && \
-		go tool cover -html=coverage.txt -o coverage.html
+	go test -short -coverprofile=coverage.txt -covermode=atomic ./... \
+		&& go tool cover -html=coverage.txt -o coverage.html
 
 .PHONY: lint
 lint: ## Lint code
-	revive ./... || golint -set_exit_status ./... || true
+	revive ./...
 
 .PHONY: clean
 clean: ## Clean up temp files and binaries
