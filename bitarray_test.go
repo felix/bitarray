@@ -79,9 +79,9 @@ func TestPack(t *testing.T) {
 func TestSlice(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s, l     uint64 // start and length
+		s, l     int // start and length
 		expected string
-		avail    uint8
+		avail    int
 	}{
 		{New([]byte{0xff}, 8), 0, 8, "[11111111]", 0},
 		{New([]byte{0xff}, 8), 0, 1, "[10000000]", 7},
@@ -117,7 +117,7 @@ func TestSlice(t *testing.T) {
 func TestReadBig(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s, l     uint64 // start and length
+		s, l     int // start and length
 		expected uint64
 	}{
 		{New([]byte{0x02}, 8), 0, 8, 0x02},
@@ -146,7 +146,7 @@ func TestReadBig(t *testing.T) {
 func TestTest(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		in       uint64
+		in       int
 		expected bool
 	}{
 		{New([]byte{0x01}, 8), 0, false},
@@ -167,7 +167,7 @@ func TestTest(t *testing.T) {
 func TestSet(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		in       uint64
+		in       int
 		expected string
 	}{
 		{New([]byte{0x00}, 1), 0, "[10000000]"},
@@ -284,7 +284,7 @@ func TestAdd8N(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
 		}
-		expected := lBefore + uint64(tt.l)
+		expected := lBefore + int(tt.l)
 		if tt.ba.Len() != expected {
 			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
 		}
@@ -322,7 +322,7 @@ func TestAdd16N(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
 		}
-		expected := lBefore + uint64(tt.l)
+		expected := lBefore + int(tt.l)
 		if tt.ba.Len() != expected {
 			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
 		}
@@ -360,7 +360,7 @@ func TestAdd32N(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
 		}
-		expected := lBefore + uint64(tt.l)
+		expected := lBefore + int(tt.l)
 		if tt.ba.Len() != expected {
 			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
 		}
@@ -398,7 +398,7 @@ func TestAdd64N(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
 		}
-		expected := lBefore + uint64(tt.l)
+		expected := lBefore + int(tt.l)
 		if tt.ba.Len() != expected {
 			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
 		}

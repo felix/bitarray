@@ -9,18 +9,23 @@ import (
 // BitArray holds an array of bits.
 type BitArray struct {
 	raw   []byte
-	avail uint8
-	size  uint64
+	avail int
+	size  int
 }
 
 // New creates a BitArray with the given []byte and count bits.
 // Count is from position 0 of b.
-func New(b []byte, count uint64) *BitArray {
+func New(b []byte, count int) *BitArray {
 	out := &BitArray{}
 	out.raw = b
 	out.size = count
-	out.avail = uint8(uint64(len(b))*8 - count)
+	out.avail = len(b)*8 - count
 	return out
+}
+
+// BitWriter is the interface that wraps the WriteBit method.
+type BitWriter interface {
+	WriteBits(uint64, uint64) error
 }
 
 // Bytes returns the BitArray as bytes.
@@ -29,7 +34,7 @@ func (ba BitArray) Bytes() []byte {
 }
 
 // Len returns the BitArray length.
-func (ba BitArray) Len() uint64 {
+func (ba BitArray) Len() int {
 	return ba.size
 }
 
@@ -40,38 +45,38 @@ func (ba BitArray) String() string {
 }
 
 // Test returns true if bit at offset i is 1, false otherwise.
-func (ba BitArray) Test(i uint64) bool {
+func (ba BitArray) Test(i int) bool {
 	if i > ba.size {
 		return false
 	}
 	idx := i / 8
 	offset := i % 8
-	if idx >= uint64(len(ba.raw)) {
+	if idx >= len(ba.raw) {
 		return false
 	}
-	mask := 1 << (7 - offset)
+	mask := 1 << uint(7-offset)
 	return (ba.raw[idx] & byte(mask)) != 0
 }
 
 // Set a single bit to 1 at position n.
-func (ba *BitArray) Set(n uint64) {
+func (ba *BitArray) Set(n int) {
 	if n > ba.size {
 		return
 	}
 	idx := n / 8
 	offset := n % 8
-	mask := 1 << (7 - offset)
+	mask := 1 << uint(7-offset)
 	ba.raw[idx] |= byte(mask)
 }
 
 // Unset a single bit to 0 at position n.
-func (ba *BitArray) Unset(n uint64) {
+func (ba *BitArray) Unset(n int) {
 	if n > ba.size {
 		return
 	}
 	idx := n / 8
 	offset := n % 8
-	mask := 1 << (7 - offset)
+	mask := 1 << uint(7-offset)
 	ba.raw[idx] &^= byte(mask)
 }
 
@@ -265,8 +270,21 @@ func Pack(fields ...interface{}) (*BitArray, error) {
 	return out, err
 }
 
+// Append packs another BitArray on the end.
+func (ba *BitArray) Append(others ...BitArray) {
+	for _, o := range others {
+		for i := 0; i < o.Len(); i++ {
+			if o.Test(i) {
+				ba.AddBit(1)
+			} else {
+				ba.AddBit(0)
+			}
+		}
+	}
+}
+
 // Slice reads a range from the BitArray.
-func (ba *BitArray) Slice(start, length uint64) (*BitArray, error) {
+func (ba *BitArray) Slice(start, length int) (*BitArray, error) {
 	out := new(BitArray)
 	for i := start; i < (start + length); i++ {
 		if ba.Test(i) {
@@ -279,7 +297,7 @@ func (ba *BitArray) Slice(start, length uint64) (*BitArray, error) {
 }
 
 // ReadBig reads a big.Int from the BitArray.
-func (ba *BitArray) ReadBig(start, length uint64) (*big.Int, error) {
+func (ba *BitArray) ReadBig(start, length int) (*big.Int, error) {
 	b, err := ba.Slice(start, length)
 	if err != nil {
 		return nil, err
@@ -306,8 +324,8 @@ func (ba *BitArray) addN(u, n uint8) {
 	}
 	mask = u << abs(shift)
 	ba.raw[len(ba.raw)-1] |= byte(mask)
-	ba.avail = abs(shift)
-	ba.size += uint64(n)
+	ba.avail = int(abs(shift))
+	ba.size += int(n)
 	ba.norm()
 }
 
@@ -324,7 +342,7 @@ func (ba *BitArray) norm() {
 	if ba.avail > 8 {
 		ba.raw = ba.raw[:n]
 	}
-	ba.avail = uint8(uint64(n*8) - ba.size)
+	ba.avail = n*8 - ba.size
 }
 
 // ShiftL shifts all bits to the left and returns those
@@ -367,16 +385,9 @@ func (ba *BitArray) ShiftR(s uint8) (r byte) {
 	return
 }
 
-func abs(i int8) uint8 {
+func abs(i int8) uint {
 	if i < 0 {
-		return uint8(-i)
+		return uint(-i)
 	}
-	return uint8(i)
-}
-
-func min(a, b uint64) uint64 {
-	if a < b {
-		return a
-	}
-	return b
+	return uint(i)
 }
