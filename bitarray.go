@@ -23,10 +23,7 @@ func New(b []byte, count int) *BitArray {
 	return out
 }
 
-// BitWriter is the interface that wraps the WriteBit method.
-type BitWriter interface {
-	WriteBits(uint64, uint64) error
-}
+const uintSize = 32 << (^uint(0) >> 63)
 
 // Bytes returns the BitArray as bytes.
 func (ba BitArray) Bytes() []byte {
@@ -81,14 +78,14 @@ func (ba *BitArray) Unset(n int) {
 }
 
 // Pad adds n zeros as padding.
-func (ba *BitArray) Pad(n uint64) {
-	for i := uint64(0); i < n; i++ {
-		ba.Add8(uint8(0))
+func (ba *BitArray) Pad(n uint) {
+	for i := uint(0); i < n; i++ {
+		ba.Add(0)
 	}
 }
 
 // AddBit adds a single bit to the array.
-func (ba *BitArray) AddBit(u uint8) {
+func (ba *BitArray) AddBit(u uint) {
 	ba.grow()
 	if u == 0 {
 		ba.Unset(ba.size)
@@ -99,94 +96,28 @@ func (ba *BitArray) AddBit(u uint8) {
 	ba.avail--
 }
 
-// Add8 adds a uint8 to the BitArray with leading zeros removed.
-func (ba *BitArray) Add8(u uint8) {
+// Add adds a uint8 to the BitArray with leading zeros removed.
+func (ba *BitArray) Add(u uint) {
 	if u == 0 {
 		ba.AddBit(0)
 		return
 	}
-	ba.add(u)
+	used := bits.Len(u)
+	for i := used - 1; i >= 0; i-- {
+		set := uint8(u>>uint(i)) & 0x01
+		ba.AddBit(uint(set))
+	}
 }
 
-// Add8N adds a uint8 with a fixed width of n, left padded with zeros.
-func (ba *BitArray) Add8N(u, s uint8) {
-	n := uint8(bits.Len8(u))
-	for i := uint8(0); i < (s - n); i++ {
-		ba.AddBit(0)
+// AddN adds a uint with a fixed width of n, left padded with zeros.
+func (ba *BitArray) AddN(u, s uint) {
+	n := uint(bits.Len(u))
+	if n > s {
+		panic("bitarray.AddN: insufficient size")
 	}
+	ba.Pad(s - n)
 	if n != 0 {
-		ba.Add8(u)
-	}
-}
-
-// Add16 adds a uint8 to the BitArray.
-func (ba *BitArray) Add16(u uint16) {
-	if u == 0 {
-		ba.AddBit(0)
-		return
-	}
-	ba.add(uint8(u >> 8))
-	ba.add(uint8(u))
-}
-
-// Add16N adds a uint16 with a fixed width of n.
-func (ba *BitArray) Add16N(u, s uint16) {
-	n := uint16(bits.Len16(u))
-	for i := uint16(0); i < (s - n); i++ {
-		ba.AddBit(0)
-	}
-	if n != 0 {
-		ba.Add16(u)
-	}
-}
-
-// Add32 adds a uint32 to the BitArray.
-func (ba *BitArray) Add32(u uint32) {
-	if u == 0 {
-		ba.AddBit(0)
-		return
-	}
-	ba.add(uint8(u >> 24))
-	ba.add(uint8(u >> 16))
-	ba.add(uint8(u >> 8))
-	ba.add(uint8(u))
-}
-
-// Add32N adds a uint32 with a fixed width of n.
-func (ba *BitArray) Add32N(u, s uint32) {
-	n := uint32(bits.Len32(u))
-	for i := uint32(0); i < (s - n); i++ {
-		ba.AddBit(0)
-	}
-	if n != 0 {
-		ba.Add32(u)
-	}
-}
-
-// Add64 adds a uint64 to the BitArray.
-func (ba *BitArray) Add64(u uint64) {
-	if u == 0 {
-		ba.AddBit(0)
-		return
-	}
-	ba.add(uint8(u >> 56))
-	ba.add(uint8(u >> 48))
-	ba.add(uint8(u >> 40))
-	ba.add(uint8(u >> 32))
-	ba.add(uint8(u >> 24))
-	ba.add(uint8(u >> 16))
-	ba.add(uint8(u >> 8))
-	ba.add(uint8(u))
-}
-
-// Add64N adds a uint64 with a fixed width of n.
-func (ba *BitArray) Add64N(u, s uint64) {
-	n := uint64(bits.Len64(u))
-	for i := uint64(0); i < (s - n); i++ {
-		ba.AddBit(0)
-	}
-	if n != 0 {
-		ba.Add64(u)
+		ba.Add(u)
 	}
 }
 
@@ -195,64 +126,66 @@ func (ba *BitArray) Pack(fields ...interface{}) error {
 	for _, f := range fields {
 		switch c := f.(type) {
 		case uint:
-			ba.Add32(uint32(c))
+			ba.Add(c)
 		case uint8:
-			ba.Add8(c)
+			ba.Add(uint(c))
 		case uint16:
-			ba.Add16(c)
+			ba.Add(uint(c))
 		case uint32:
-			ba.Add32(c)
+			ba.Add(uint(c))
 		case uint64:
-			ba.Add64(c)
+			// TODO check uintSize?
+			ba.Add(uint(c))
 		case []uint:
 			for _, i := range c {
-				ba.Add32(uint32(i))
+				ba.Add(i)
 			}
 		case []uint8:
 			for _, i := range c {
-				ba.Add8(i)
+				ba.Add(uint(i))
 			}
 		case []uint16:
 			for _, i := range c {
-				ba.Add16(i)
+				ba.Add(uint(i))
 			}
 		case []uint32:
 			for _, i := range c {
-				ba.Add32(i)
+				ba.Add(uint(i))
 			}
 		case []uint64:
+			// TODO check uintSize?
 			for _, i := range c {
-				ba.Add64(i)
+				ba.Add(uint(i))
 			}
 		case int:
-			ba.Add32(uint32(c))
+			ba.Add(uint(c))
 		case int8:
-			ba.Add8(uint8(c))
+			ba.Add(uint(c))
 		case int16:
-			ba.Add16(uint16(c))
+			ba.Add(uint(c))
 		case int32:
-			ba.Add32(uint32(c))
+			ba.Add(uint(c))
 		case int64:
-			ba.Add64(uint64(c))
+			ba.Add(uint(c))
 		case []int:
 			for _, i := range c {
-				ba.Add32(uint32(i))
+				ba.Add(uint(i))
 			}
 		case []int8:
 			for _, i := range c {
-				ba.Add8(uint8(i))
+				ba.Add(uint(i))
 			}
 		case []int16:
 			for _, i := range c {
-				ba.Add16(uint16(i))
+				ba.Add(uint(i))
 			}
 		case []int32:
 			for _, i := range c {
-				ba.Add32(uint32(i))
+				ba.Add(uint(i))
 			}
 		case []int64:
 			for _, i := range c {
-				ba.Add64(uint64(i))
+				ba.Add(uint(i))
 			}
 		case []interface{}:
 			return ba.Pack(c...)
@@ -304,29 +237,6 @@ func (ba *BitArray) ReadBig(start, length int) (*big.Int, error) {
 	}
 	out := new(big.Int).SetBytes(b.Bytes())
 	return out.Rsh(out, uint(b.avail)), nil
-}
-
-func (ba *BitArray) add(u uint8) {
-	n := uint8(bits.Len8(u))
-	ba.addN(u, n)
-}
-
-func (ba *BitArray) addN(u, n uint8) {
-	ba.grow()
-	var mask uint8
-	shift := int8(uint8(ba.avail) - n)
-	if shift < 0 {
-		// It doesn't fit
-		mask = u >> abs(shift)
-		ba.raw[len(ba.raw)-1] |= byte(mask)
-		ba.raw = append(ba.raw, byte(0))
-		shift = 8 + shift
-	}
-	mask = u << abs(shift)
-	ba.raw[len(ba.raw)-1] |= byte(mask)
-	ba.avail = int(abs(shift))
-	ba.size += int(n)
-	ba.norm()
 }
 
 func (ba *BitArray) grow() {
@@ -383,11 +293,4 @@ func (ba *BitArray) ShiftR(s uint8) (r byte) {
 		ba.raw[0] = b1 >> s
 	}
 	return
-}
-
-func abs(i int8) uint {
-	if i < 0 {
-		return uint(-i)
-	}
-	return uint(i)
 }
