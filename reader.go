@@ -42,3 +42,8 @@ func (r *Reader) ReadBit() bool {
 	r.i++
 	return out
 }
+
+// Seek sets the internal pointer to position n.
+func (r *Reader) Seek(n uint) {
+	r.i = n
+}

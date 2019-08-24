@@ -35,4 +35,9 @@ func TestReadBits(t *testing.T) {
 	if err := r.ReadBits(&test, 1); err == nil {
 		t.Errorf("expected error")
 	}
+
+	r.Seek(15)
+	if !r.ReadBit() {
+		t.Errorf("expected 1 got 0")
+	}
 }
