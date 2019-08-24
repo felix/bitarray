@@ -102,7 +102,7 @@ func TestSlice(t *testing.T) {
 		ba       *BitArray
 		s, l     int // start and length
 		expected string
-		avail    int
+		avail    uint
 	}{
 		{New([]byte{0xff}, 8), 0, 8, "[11111111]", 0},
 		{New([]byte{0xff}, 8), 0, 1, "[10000000]", 7},
@@ -129,17 +129,17 @@ func TestSlice(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("%x %d,%d => expected %q got %q", tt.ba.raw, tt.s, tt.l, tt.expected, actual)
 		}
-		if a.avail != tt.avail {
-			t.Errorf("%x %d,%d => expected avail %d got %d", tt.ba.raw, tt.s, tt.l, tt.avail, a.avail)
+		if a.avail() != tt.avail {
+			t.Errorf("%x %d,%d => expected avail %d got %d", tt.ba.raw, tt.s, tt.l, tt.avail, a.avail())
 		}
 	}
 }
 
-func TestReadBig(t *testing.T) {
+func TestReadUint(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
 		s, l     int // start and length
-		expected uint64
+		expected uint
 	}{
 		{New([]byte{0x02}, 8), 0, 8, 0x02},
 		{New([]byte{0xff}, 8), 0, 8, 0xff},
@@ -153,11 +153,10 @@ func TestReadBig(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		b, err := tt.ba.ReadBig(tt.s, tt.l)
+		actual, err := tt.ba.ReadUint(tt.s, tt.l)
 		if err != nil {
 			t.Errorf("failed with %q", err)
 		}
-		actual := b.Uint64()
 		if actual != tt.expected {
 			t.Errorf("%x %d,%d => expected %d got %d", tt.ba.raw, tt.s, tt.l, tt.expected, actual)
 		}
@@ -207,7 +206,7 @@ func TestSet(t *testing.T) {
 func TestShiftL(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s        uint8
+		s        uint
 		expected string
 	}{
 		{New([]byte{0x01}, 7), 1, "[00000010]"},
@@ -235,7 +234,7 @@ func TestShiftL(t *testing.T) {
 func TestShiftR(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s        uint8
+		s        uint
 		expected string
 	}{
 		{New([]byte{0x80}, 8), 1, "[01000000]"},
