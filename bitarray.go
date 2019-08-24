@@ -228,11 +228,11 @@ func (ba *BitArray) Slice(start, length int) (*BitArray, error) {
 	return out, nil
 }
 
-// ReadBig reads a big.Int from the BitArray.
-func (ba *BitArray) ReadBig(start, length int) (*big.Int, error) {
+// ReadUint reads a uint from the BitArray.
+func (ba *BitArray) ReadUint(start, length int) (uint, error) {
 	b, err := ba.Slice(start, length)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	out := new(big.Int).SetBytes(b.Bytes())
 	return uint(out.Rsh(out, b.avail()).Uint64()), nil
