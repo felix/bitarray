@@ -94,17 +94,18 @@ func (ba *BitArray) AddBit(u uint) {
 	ba.size++
 }
 
-// Add adds a uint8 to the BitArray with leading zeros removed.
-func (ba *BitArray) Add(u uint) {
+// Add adds a uint to the BitArray with leading zeros removed, returning
+func (ba *BitArray) Add(u uint) uint {
 	if u == 0 {
 		ba.AddBit(0)
-		return
+		return 1
 	}
 	used := bits.Len(u)
 	for i := used - 1; i >= 0; i-- {
 		set := uint8(u>>uint(i)) & 0x01
 		ba.AddBit(uint(set))
 	}
+	return uint(used)
 }
 
 // AddN adds a uint with a fixed width of n, left padded with zeros.
