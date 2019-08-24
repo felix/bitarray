@@ -8,9 +8,8 @@ import (
 
 // BitArray holds an array of bits.
 type BitArray struct {
-	raw   []byte
-	avail int
-	size  int
+	raw  []byte
+	size int
 }
 
 // New creates a BitArray with the given []byte and count bits.
@@ -19,7 +18,7 @@ func New(b []byte, count int) *BitArray {
 	out := &BitArray{}
 	out.raw = b
 	out.size = count
-	out.avail = len(b)*8 - count
+	//out.avail = uint(len(b)*8 - count)
 	return out
 }
 
@@ -93,7 +92,6 @@ func (ba *BitArray) AddBit(u uint) {
 		ba.Set(ba.size)
 	}
 	ba.size++
-	ba.avail--
 }
 
 // Add adds a uint8 to the BitArray with leading zeros removed.
@@ -236,23 +234,25 @@ func (ba *BitArray) ReadBig(start, length int) (*big.Int, error) {
 		return nil, err
 	}
 	out := new(big.Int).SetBytes(b.Bytes())
-	return out.Rsh(out, uint(b.avail)), nil
+	return uint(out.Rsh(out, b.avail()).Uint64()), nil
 }
 
 func (ba *BitArray) grow() {
-	if ba.avail <= 0 {
+	if ba.avail() <= 0 {
 		ba.raw = append(ba.raw, byte(0))
-		ba.avail += 8
 	}
+}
+
+func (ba BitArray) avail() uint {
+	return uint(len(ba.raw)*8 - ba.size)
 }
 
 // Remove extraneous bits.
 func (ba *BitArray) norm() {
 	n := len(ba.raw)
-	if ba.avail > 8 {
+	if ba.avail() > 8 {
 		ba.raw = ba.raw[:n]
 	}
-	ba.avail = n*8 - ba.size
 }
 
 // ShiftL shifts all bits to the left and returns those
