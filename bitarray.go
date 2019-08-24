@@ -258,7 +258,7 @@ func (ba *BitArray) norm() {
 
 // ShiftL shifts all bits to the left and returns those
 // shifted off. s cannot be larger than 8.
-func (ba *BitArray) ShiftL(s uint8) (r byte) {
+func (ba *BitArray) ShiftL(s uint) (r byte) {
 	if s > 8 {
 		return
 	}
@@ -278,7 +278,7 @@ func (ba *BitArray) ShiftL(s uint8) (r byte) {
 
 // ShiftR shifts all bits to the right and returns those
 // shifted off. s cannot be larger than 8.
-func (ba *BitArray) ShiftR(s uint8) (r byte) {
+func (ba *BitArray) ShiftR(s uint) (r byte) {
 	if s > 8 {
 		return
 	}
