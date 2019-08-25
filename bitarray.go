@@ -9,12 +9,12 @@ import (
 // BitArray holds an array of bits.
 type BitArray struct {
 	raw  []byte
-	size int
+	size int64
 }
 
 // New creates a BitArray with the given []byte and count bits.
 // Count is from position 0 of b.
-func New(b []byte, count int) *BitArray {
+func New(b []byte, count int64) *BitArray {
 	out := &BitArray{}
 	out.raw = b
 	out.size = count
@@ -30,7 +30,7 @@ func (ba BitArray) Bytes() []byte {
 }
 
 // Len returns the BitArray length.
-func (ba BitArray) Len() int {
+func (ba BitArray) Len() int64 {
 	return ba.size
 }
 
@@ -41,13 +41,13 @@ func (ba BitArray) String() string {
 }
 
 // Test returns true if bit at offset i is 1, false otherwise.
-func (ba BitArray) Test(i int) bool {
+func (ba BitArray) Test(i int64) bool {
 	if i > ba.size {
 		return false
 	}
 	idx := i / 8
 	offset := i % 8
-	if idx >= len(ba.raw) {
+	if idx >= int64(len(ba.raw)) {
 		return false
 	}
 	mask := 1 << uint(7-offset)
@@ -55,7 +55,7 @@ func (ba BitArray) Test(i int) bool {
 }
 
 // Set a single bit to 1 at position n.
-func (ba *BitArray) Set(n int) {
+func (ba *BitArray) Set(n int64) {
 	if n > ba.size {
 		return
 	}
@@ -66,7 +66,7 @@ func (ba *BitArray) Set(n int) {
 }
 
 // Unset a single bit to 0 at position n.
-func (ba *BitArray) Unset(n int) {
+func (ba *BitArray) Unset(n int64) {
 	if n > ba.size {
 		return
 	}
@@ -94,8 +94,9 @@ func (ba *BitArray) AddBit(u uint) {
 	ba.size++
 }
 
-// Add adds a uint to the BitArray with leading zeros removed, returning
-func (ba *BitArray) Add(u uint) uint {
+// Add adds a uint to the BitArray with leading zeros removed,
+// returning number of added bits.
+func (ba *BitArray) Add(u uint) int {
 	if u == 0 {
 		ba.AddBit(0)
 		return 1
@@ -105,16 +106,16 @@ func (ba *BitArray) Add(u uint) uint {
 		set := uint8(u>>uint(i)) & 0x01
 		ba.AddBit(uint(set))
 	}
-	return uint(used)
+	return used
 }
 
 // AddN adds a uint with a fixed width of n, left padded with zeros.
-func (ba *BitArray) AddN(u, s uint) {
-	n := uint(bits.Len(u))
+func (ba *BitArray) AddN(u uint, s int) {
+	n := bits.Len(u)
 	if n > s {
 		panic("bitarray.AddN: insufficient size")
 	}
-	ba.Pad(s - n)
+	ba.Pad(uint(s - n))
 	if n != 0 {
 		ba.Add(u)
 	}
@@ -205,7 +206,7 @@ func Pack(fields ...interface{}) (*BitArray, error) {
 // Append packs another BitArray on the end.
 func (ba *BitArray) Append(others ...BitArray) {
 	for _, o := range others {
-		for i := 0; i < o.Len(); i++ {
+		for i := int64(0); i < o.Len(); i++ {
 			if o.Test(i) {
 				ba.AddBit(1)
 			} else {
@@ -216,7 +217,7 @@ func (ba *BitArray) Append(others ...BitArray) {
 }
 
 // Slice reads a range from the BitArray.
-func (ba *BitArray) Slice(start, length int) (*BitArray, error) {
+func (ba *BitArray) Slice(start, length int64) (*BitArray, error) {
 	out := new(BitArray)
 	for i := start; i < (start + length); i++ {
 		if ba.Test(i) {
@@ -229,7 +230,7 @@ func (ba *BitArray) Slice(start, length int) (*BitArray, error) {
 }
 
 // ReadUint reads a uint from the BitArray.
-func (ba *BitArray) ReadUint(start, length int) (uint, error) {
+func (ba *BitArray) ReadUint(start, length int64) (uint, error) {
 	b, err := ba.Slice(start, length)
 	if err != nil {
 		return 0, err
@@ -245,7 +246,7 @@ func (ba *BitArray) grow() {
 }
 
 func (ba BitArray) avail() uint {
-	return uint(len(ba.raw)*8 - ba.size)
+	return uint(int64(len(ba.raw)*8) - ba.size)
 }
 
 // Remove extraneous bits.

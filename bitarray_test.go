@@ -34,7 +34,7 @@ func TestAdd(t *testing.T) {
 		ba        *BitArray
 		in        []uint
 		expected  string
-		expectedN int
+		expectedN int64
 	}{
 		{New([]byte{0xF0}, 4), []uint{1}, "[11111000]", 5},
 		{New([]byte{0xF0}, 8), []uint{1}, "[11110000 10000000]", 9},
@@ -63,7 +63,7 @@ func TestAddN(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
 		in       uint
-		l        uint
+		l        int
 		expected string
 	}{
 		{New([]byte{0xF0}, 4), 1, 1, "[11111000]"},
@@ -90,7 +90,7 @@ func TestAddN(t *testing.T) {
 		if actual != tt.expected {
 			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
 		}
-		expected := lBefore + int(tt.l)
+		expected := lBefore + int64(tt.l)
 		if tt.ba.Len() != expected {
 			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
 		}
@@ -100,7 +100,7 @@ func TestAddN(t *testing.T) {
 func TestSlice(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s, l     int // start and length
+		s, l     int64 // start and length
 		expected string
 		avail    uint
 	}{
@@ -138,7 +138,7 @@ func TestSlice(t *testing.T) {
 func TestReadUint(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s, l     int // start and length
+		s, l     int64 // start and length
 		expected uint
 	}{
 		{New([]byte{0x02}, 8), 0, 8, 0x02},
@@ -166,7 +166,7 @@ func TestReadUint(t *testing.T) {
 func TestTest(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		in       int
+		in       int64
 		expected bool
 	}{
 		{New([]byte{0x01}, 8), 0, false},
@@ -187,7 +187,7 @@ func TestTest(t *testing.T) {
 func TestSet(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		in       int
+		in       int64
 		expected string
 	}{
 		{New([]byte{0x00}, 1), 0, "[10000000]"},

@@ -29,14 +29,13 @@ func TestReadBits(t *testing.T) {
 	if test != 1 {
 		t.Errorf("expected 1 got %d", test)
 	}
-	t.Log(r.i)
 
 	// Read past end
 	if err := r.ReadBits(&test, 1); err == nil {
 		t.Errorf("expected error")
 	}
 
-	r.Seek(15)
+	r.Seek(15, SeekStart)
 	if !r.ReadBit() {
 		t.Errorf("expected 1 got 0")
 	}
