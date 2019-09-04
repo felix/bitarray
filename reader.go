@@ -1,18 +1,25 @@
 package bitarray
 
-import "errors"
+import (
+	"errors"
+)
 
-// EOF is the error returned by Read when no more input is available.
 var (
-	EOF              = errors.New("EOF")
+	// EOF is returned when no more input is available.
+	EOF = errors.New("EOF") // revive:disable:error-naming
+	// ErrInvalidWhence is return for invalid seeking.
 	ErrInvalidWhence = errors.New("invalid whence")
+	// ErrInvalidOffset is returned for invalid seek offsets.
 	ErrInvalidOffset = errors.New("invalid offset")
 )
 
 const (
-	SeekStart   = 0 // seek relative to the origin of the file
-	SeekCurrent = 1 // seek relative to the current offset
-	SeekEnd     = 2 // seek relative to the end
+	// SeekStart seeks relative to the origin of the file
+	SeekStart = 0
+	// SeekCurrent seeks relative to the current offset
+	SeekCurrent = 1
+	// SeekEnd seeks relative to the end
+	SeekEnd = 2
 )
 
 // A Reader implements the BitReader interface.
@@ -39,6 +46,11 @@ func (r *Reader) ReadBits(out *uint, n int) error {
 	*out = i
 	r.i += int64(n)
 	return nil
+}
+
+// Pos returns the current position of the reader.
+func (r *Reader) Pos() int64 {
+	return r.i
 }
 
 // ReadBit advances one bit and returns the result of a boolean AND test on it.
