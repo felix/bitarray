@@ -40,16 +40,16 @@ func (ba BitArray) String() string {
 	return fmt.Sprintf("%08b", ba.raw)
 }
 
-// Test returns true if bit at offset i is 1, false otherwise.
+// Test returns true if bit at (zero based) offset i is 1, false otherwise.
 func (ba BitArray) Test(i int64) bool {
-	if i > ba.size {
+	if i > ba.size-1 {
 		return false
 	}
 	idx := i / 8
 	offset := i % 8
-	if idx >= int64(len(ba.raw)) {
-		return false
-	}
+	// if idx >= int64(len(ba.raw)) {
+	// 	return false
+	// }
 	mask := 1 << uint(7-offset)
 	return (ba.raw[idx] & byte(mask)) != 0
 }
@@ -247,14 +247,6 @@ func (ba *BitArray) grow() {
 
 func (ba BitArray) avail() uint {
 	return uint(int64(len(ba.raw)*8) - ba.size)
-}
-
-// Remove extraneous bits.
-func (ba *BitArray) norm() {
-	n := len(ba.raw)
-	if ba.avail() > 8 {
-		ba.raw = ba.raw[:n]
-	}
 }
 
 // ShiftL shifts all bits to the left and returns those

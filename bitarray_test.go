@@ -172,6 +172,7 @@ func TestTest(t *testing.T) {
 		{New([]byte{0x01}, 8), 0, false},
 		{New([]byte{0x01}, 8), 1, false},
 		{New([]byte{0x01}, 8), 7, true},
+		{New([]byte{0x01}, 8), 8, false},
 		{New([]byte{0x00, 0x80}, 16), 8, true},
 		{New([]byte{0x00, 0x02}, 16), 14, true},
 	}
@@ -326,6 +327,28 @@ func TestPack(t *testing.T) {
 		}
 		if actual != ba.String() {
 			t.Errorf("%v => expected %q got %q", tt.in, actual, ba.String())
+		}
+	}
+}
+
+func TestAppend(t *testing.T) {
+	tests := []struct {
+		ba1      *BitArray
+		ba2      *BitArray
+		expected string
+	}{
+		{New([]byte{0x80}, 1), New([]byte{0x80}, 1), "[11000000]"},
+		{New([]byte{0x80}, 8), New([]byte{0x80}, 1), "[10000000 10000000]"},
+		{New([]byte{0xF0}, 4), New([]byte{0xF0}, 4), "[11111111]"},
+	}
+
+	for i, tt := range tests {
+		fmt.Printf("%08b", tt.ba1.Bytes())
+		fmt.Printf("%08b", tt.ba2.Bytes())
+		tt.ba1.Append(*tt.ba2)
+		actual := fmt.Sprintf("%08b", tt.ba1.Bytes())
+		if actual != tt.expected {
+			t.Errorf("%d => expected %s got %s", i, tt.expected, actual)
 		}
 	}
 }
