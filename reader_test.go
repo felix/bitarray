@@ -5,7 +5,7 @@ import (
 )
 
 func TestReadBits(t *testing.T) {
-	ba := New([]byte{0xf0, 0x01}, 16)
+	ba := NewFromBytes([]byte{0xf0, 0x01}, 16)
 	r := NewReader(ba)
 
 	if r.Pos() != 0 {

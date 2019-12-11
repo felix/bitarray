@@ -12,9 +12,9 @@ type BitArray struct {
 	size int64
 }
 
-// New creates a BitArray with the given []byte and count bits.
+// NewFromBytes creates a BitArray from the given []byte and count bits.
 // Count is from position 0 of b.
-func New(b []byte, count int64) *BitArray {
+func NewFromBytes(b []byte, count int64) *BitArray {
 	out := &BitArray{}
 	out.raw = b
 	out.size = count
@@ -76,7 +76,7 @@ func (ba *BitArray) Unset(n int64) {
 	ba.raw[idx] &^= byte(mask)
 }
 
-// Pad adds n zeros as padding.
+// Pad array with n zeros.
 func (ba *BitArray) Pad(n uint) {
 	for i := uint(0); i < n; i++ {
 		ba.Add(0)
@@ -94,8 +94,8 @@ func (ba *BitArray) AddBit(u uint) {
 	ba.size++
 }
 
-// Add adds a uint to the BitArray with leading zeros removed,
-// returning number of added bits.
+// Add an uint to the array with leading zeros removed,
+// returns the number of bits added.
 func (ba *BitArray) Add(u uint) int {
 	if u == 0 {
 		ba.AddBit(0)
@@ -109,19 +109,19 @@ func (ba *BitArray) Add(u uint) int {
 	return used
 }
 
-// AddN adds a uint with a fixed width of n, left padded with zeros.
-func (ba *BitArray) AddN(u uint, s int) {
+// AddN adds a uint with a fixed width of n, left padded to width with zeros.
+func (ba *BitArray) AddN(u uint, width int) {
 	n := bits.Len(u)
-	if n > s {
+	if n > width {
 		panic("bitarray.AddN: insufficient size")
 	}
-	ba.Pad(uint(s - n))
+	ba.Pad(uint(width - n))
 	if n != 0 {
 		ba.Add(u)
 	}
 }
 
-// Pack stuff together into existing BitArray.
+// Pack stuff together into existing array.
 func (ba *BitArray) Pack(fields ...interface{}) error {
 	for _, f := range fields {
 		switch c := f.(type) {
@@ -239,52 +239,62 @@ func (ba *BitArray) ReadUint(start, length int64) (uint, error) {
 	return uint(out.Rsh(out, b.avail()).Uint64()), nil
 }
 
+// grow the underlying storage until we have available bits.
 func (ba *BitArray) grow() {
 	if ba.avail() <= 0 {
 		ba.raw = append(ba.raw, byte(0))
 	}
 }
 
+// The number of bits available in the underlying storage.
 func (ba BitArray) avail() uint {
 	return uint(int64(len(ba.raw)*8) - ba.size)
 }
 
 // ShiftL shifts all bits to the left and returns those
 // shifted off. s cannot be larger than 8.
+// TODO shift more than 8!
 func (ba *BitArray) ShiftL(s uint) (r byte) {
 	if s > 8 {
 		return
 	}
-	if n := len(ba.raw); n > 0 {
-		_s := 8 - s
-		b1 := ba.raw[n-1]
-		r = b1 >> _s
-		for i := 0; i < n-1; i++ {
-			b := b1
-			b1 = ba.raw[i+1]
-			ba.raw[i] = b<<s | b1>>_s
-		}
-		ba.raw[n-1] = b1 << s
+	n := len(ba.raw)
+	if n == 0 {
+		return
 	}
-	return
+
+	_s := 8 - s
+	b1 := ba.raw[n-1]
+	r = b1 >> _s
+	for i := 0; i < n-1; i++ {
+		b := b1
+		b1 = ba.raw[i+1]
+		ba.raw[i] = b<<s | b1>>_s
+	}
+	ba.raw[n-1] = b1 << s
+	return r
 }
 
 // ShiftR shifts all bits to the right and returns those
 // shifted off. s cannot be larger than 8.
+// TODO shift more than 8!
 func (ba *BitArray) ShiftR(s uint) (r byte) {
 	if s > 8 {
 		return
 	}
-	if n := len(ba.raw); n > 0 {
-		_s := 8 - s
-		b1 := ba.raw[0]
-		r = b1 << _s
-		for i := n - 1; i > 0; i-- {
-			b := b1
-			b1 = ba.raw[i-1]
-			ba.raw[i] = b>>s | b1<<_s
-		}
-		ba.raw[0] = b1 >> s
+	n := len(ba.raw)
+	if n == 0 {
+		return
 	}
-	return
+
+	_s := 8 - s
+	b1 := ba.raw[0]
+	r = b1 << _s
+	for i := n - 1; i > 0; i-- {
+		b := b1
+		b1 = ba.raw[i-1]
+		ba.raw[i] = b>>s | b1<<_s
+	}
+	ba.raw[0] = b1 >> s
+	return r
 }
