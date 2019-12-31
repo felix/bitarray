@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/bits"
+	"strings"
 )
 
 // BitArray holds an array of bits.
@@ -37,7 +38,23 @@ func (ba BitArray) Len() int64 {
 // Bytes returns the BitArray as bytes.
 // The remaining bits of the last byte are set to zero.
 func (ba BitArray) String() string {
-	return fmt.Sprintf("%08b", ba.raw)
+	var s strings.Builder
+	s.WriteByte('[')
+	for i := int64(0); i < ba.size; i++ {
+		if i > 0 && i%8 == 0 {
+			s.WriteByte(' ')
+		}
+		if ba.Test(i) {
+			s.WriteByte('1')
+		} else {
+			s.WriteByte('0')
+		}
+	}
+	for i := uint(0); i < ba.avail(); i++ {
+		s.WriteByte('-')
+	}
+	s.WriteByte(']')
+	return s.String()
 }
 
 // Test returns true if bit at (zero based) offset i is 1, false otherwise.
