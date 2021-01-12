@@ -94,14 +94,16 @@ func (ba *BitArray) Unset(n int64) {
 }
 
 // Pad array with n zeros.
-func (ba *BitArray) Pad(n uint) {
+func (ba *BitArray) Pad(n uint) int {
+	c := 0
 	for i := uint(0); i < n; i++ {
-		ba.Add(0)
+		c += ba.Add(0)
 	}
+	return c
 }
 
 // AddBit adds a single bit to the array.
-func (ba *BitArray) AddBit(u uint) {
+func (ba *BitArray) AddBit(u uint) int {
 	ba.grow()
 	if u == 0 {
 		ba.Unset(ba.size)
@@ -109,6 +111,7 @@ func (ba *BitArray) AddBit(u uint) {
 		ba.Set(ba.size)
 	}
 	ba.size++
+	return 1
 }
 
 // Add an uint to the array with leading zeros removed,
@@ -126,16 +129,18 @@ func (ba *BitArray) Add(u uint) int {
 	return used
 }
 
-// AddN adds a uint with a fixed width of n, left padded to width with zeros.
-func (ba *BitArray) AddN(u uint, width int) {
+// AddN adds a uint with a fixed width of n, left padded to width with zeros,
+// returns the number of bits added.
+func (ba *BitArray) AddN(u uint, width int) int {
 	n := bits.Len(u)
 	if n > width {
 		panic("bitarray.AddN: insufficient size")
 	}
-	ba.Pad(uint(width - n))
+	c := ba.Pad(uint(width - n))
 	if n != 0 {
-		ba.Add(u)
+		c += ba.Add(u)
 	}
+	return c
 }
 
 // Pack stuff together into existing array.
