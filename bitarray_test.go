@@ -16,16 +16,18 @@ func TestAddBit(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lBefore := tt.ba.Len()
-		tt.ba.AddBit(tt.in)
-		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
-		}
-		expected := lBefore + 1
-		if tt.ba.Len() != expected {
-			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			lBefore := tt.ba.Len()
+			tt.ba.AddBit(tt.in)
+			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+			expected := lBefore + 1
+			if tt.ba.Len() != expected {
+				t.Errorf("got %d, want %d", tt.ba.Len(), expected)
+			}
+		})
 	}
 }
 
@@ -46,16 +48,18 @@ func TestAdd(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		for _, i := range tt.in {
-			tt.ba.Add(i)
-		}
-		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
-		}
-		if tt.ba.Len() != tt.expectedN {
-			t.Errorf("%v => expected %d got %d", tt.in, tt.expectedN, tt.ba.Len())
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			for _, i := range tt.in {
+				tt.ba.Add(i)
+			}
+			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+			if tt.ba.Len() != tt.expectedN {
+				t.Errorf("got len=%d, want %d", tt.ba.Len(), tt.expectedN)
+			}
+		})
 	}
 }
 
@@ -84,16 +88,21 @@ func TestAddN(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lBefore := tt.ba.Len()
-		tt.ba.AddN(tt.in, tt.l)
-		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
-		}
-		expected := lBefore + int64(tt.l)
-		if tt.ba.Len() != expected {
-			t.Errorf("%v => expected %d got %d", tt.in, expected, tt.ba.Len())
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			lBefore := tt.ba.Len()
+			n := tt.ba.AddN(tt.in, tt.l)
+			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+			if n != tt.l {
+				t.Errorf("got n=%d, want %d", n, tt.l)
+			}
+			expected := lBefore + int64(tt.l)
+			if tt.ba.Len() != expected {
+				t.Errorf("got len=%d, want %d", tt.ba.Len(), expected)
+			}
+		})
 	}
 }
 
@@ -121,17 +130,20 @@ func TestSlice(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		a, err := tt.ba.Slice(tt.s, tt.l)
-		if err != nil {
-			t.Errorf("failed with %q", err)
-		}
-		actual := fmt.Sprintf("%08b", a.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%x %d,%d => expected %q got %q", tt.ba.raw, tt.s, tt.l, tt.expected, actual)
-		}
-		if a.avail() != tt.avail {
-			t.Errorf("%x %d,%d => expected avail %d got %d", tt.ba.raw, tt.s, tt.l, tt.avail, a.avail())
-		}
+		name := fmt.Sprintf("%x[%d:%d]", tt.ba.raw, tt.s, tt.l)
+		t.Run(name, func(t *testing.T) {
+			a, err := tt.ba.Slice(tt.s, tt.l)
+			if err != nil {
+				t.Errorf("failed with %q", err)
+			}
+			actual := fmt.Sprintf("%08b", a.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %q, want %q", actual, tt.expected)
+			}
+			if a.avail() != tt.avail {
+				t.Errorf("got avail %d, want %d", a.avail(), tt.avail)
+			}
+		})
 	}
 }
 
@@ -153,13 +165,16 @@ func TestReadUint(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		actual, err := tt.ba.ReadUint(tt.s, tt.l)
-		if err != nil {
-			t.Errorf("failed with %q", err)
-		}
-		if actual != tt.expected {
-			t.Errorf("%x %d,%d => expected %d got %d", tt.ba.raw, tt.s, tt.l, tt.expected, actual)
-		}
+		name := fmt.Sprintf("%x[%d:%d]", tt.ba.raw, tt.s, tt.l)
+		t.Run(name, func(t *testing.T) {
+			actual, err := tt.ba.ReadUint(tt.s, tt.l)
+			if err != nil {
+				t.Errorf("failed with %q", err)
+			}
+			if actual != tt.expected {
+				t.Errorf("got %d, want %d", actual, tt.expected)
+			}
+		})
 	}
 }
 
@@ -178,10 +193,12 @@ func TestTest(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		actual := tt.ba.Test(tt.in)
-		if actual != tt.expected {
-			t.Errorf("%d => expected %t got %t", tt.in, tt.expected, actual)
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			actual := tt.ba.Test(tt.in)
+			if actual != tt.expected {
+				t.Errorf("got %t, want %t", actual, tt.expected)
+			}
+		})
 	}
 }
 
@@ -196,18 +213,20 @@ func TestSet(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt.ba.Set(tt.in)
-		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%v => expected %s got %s", tt.in, tt.expected, actual)
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			tt.ba.Set(tt.in)
+			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+		})
 	}
 }
 
 func TestShiftL(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s        uint
+		in       uint
 		expected string
 	}{
 		{NewFromBytes([]byte{0x01}, 7), 1, "[00000010]"},
@@ -224,18 +243,20 @@ func TestShiftL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt.ba.ShiftL(tt.s)
-		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%d => expected %s got %s", tt.s, tt.expected, actual)
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			tt.ba.ShiftL(tt.in)
+			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+		})
 	}
 }
 
 func TestShiftR(t *testing.T) {
 	tests := []struct {
 		ba       *BitArray
-		s        uint
+		in       uint
 		expected string
 	}{
 		{NewFromBytes([]byte{0x80}, 8), 1, "[01000000]"},
@@ -252,11 +273,13 @@ func TestShiftR(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt.ba.ShiftR(tt.s)
-		actual := fmt.Sprintf("%08b", tt.ba.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%d => expected %s got %s", tt.s, tt.expected, actual)
-		}
+		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+			tt.ba.ShiftR(tt.in)
+			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+		})
 	}
 }
 
@@ -316,18 +339,20 @@ func TestPack(t *testing.T) {
 		{[]interface{}{uint8(0xff), 1, 2, 1, 4, 1, 1}, "[11111111 11011001 1-------]"},
 	}
 
-	for i, tt := range tests {
-		ba, err := Pack(tt.in)
-		if err != nil {
-			t.Fatalf("%d => failed %q", i, err)
-		}
-		actual := ba.String()
-		if actual != tt.expected {
-			t.Errorf("%d => expected %s got %s", i, tt.expected, actual)
-		}
-		if actual != ba.String() {
-			t.Errorf("%d => expected %q got %q", i, actual, ba.String())
-		}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%v", tt.in), func(t *testing.T) {
+			ba, err := Pack(tt.in)
+			if err != nil {
+				t.Fatalf("failed %q", err)
+			}
+			actual := ba.String()
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+			if actual != ba.String() {
+				t.Errorf("got %q, want %q", ba.String(), actual)
+			}
+		})
 	}
 }
 
@@ -342,13 +367,15 @@ func TestAppend(t *testing.T) {
 		{NewFromBytes([]byte{0xF0}, 4), NewFromBytes([]byte{0xF0}, 4), "[11111111]"},
 	}
 
-	for i, tt := range tests {
-		fmt.Printf("%08b", tt.ba1.Bytes())
-		fmt.Printf("%08b", tt.ba2.Bytes())
-		tt.ba1.Append(*tt.ba2)
-		actual := fmt.Sprintf("%08b", tt.ba1.Bytes())
-		if actual != tt.expected {
-			t.Errorf("%d => expected %s got %s", i, tt.expected, actual)
-		}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s+%s", tt.ba1, tt.ba2), func(t *testing.T) {
+			fmt.Printf("%08b", tt.ba1.Bytes())
+			fmt.Printf("%08b", tt.ba2.Bytes())
+			tt.ba1.Append(*tt.ba2)
+			actual := fmt.Sprintf("%08b", tt.ba1.Bytes())
+			if actual != tt.expected {
+				t.Errorf("got %s, want %s", actual, tt.expected)
+			}
+		})
 	}
 }

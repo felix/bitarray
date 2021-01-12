@@ -9,7 +9,7 @@ func TestReadBits(t *testing.T) {
 	r := NewReader(ba)
 
 	if r.Pos() != 0 {
-		t.Errorf("expected pos %d got %d", 0, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 0)
 	}
 
 	var test uint
@@ -17,38 +17,38 @@ func TestReadBits(t *testing.T) {
 		t.Errorf("failed with %q", err)
 	}
 	if test != 15 {
-		t.Errorf("expected 15 got %d", test)
+		t.Errorf("got 15, want %d", test)
 	}
 	if r.Pos() != 4 {
-		t.Errorf("expected pos %d got %d", 4, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 4)
 	}
 	r.Seek(-4, SeekCurrent)
 	if r.Pos() != 0 {
-		t.Errorf("expected pos %d got %d", 0, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 0)
 	}
 
 	r.Seek(4, SeekStart)
 	if r.Pos() != 4 {
-		t.Errorf("expected pos %d got %d", 4, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 4)
 	}
 	if err := r.ReadBits(&test, 4); err != nil {
 		t.Errorf("failed with %q", err)
 	}
 	if test != 0 {
-		t.Errorf("expected 0 got %d", test)
+		t.Errorf("got 0, want %d", test)
 	}
 	if r.Pos() != 8 {
-		t.Errorf("expected pos %d got %d", 8, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 8)
 	}
 
 	if err := r.ReadBits(&test, 8); err != nil {
 		t.Errorf("failed with %q", err)
 	}
 	if test != 1 {
-		t.Errorf("expected 1 got %d", test)
+		t.Errorf("got 1, want %d", test)
 	}
 	if r.Pos() != 16 {
-		t.Errorf("expected pos %d got %d", 16, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 16)
 	}
 
 	// Read past end
@@ -58,13 +58,13 @@ func TestReadBits(t *testing.T) {
 
 	r.Seek(1, SeekEnd)
 	if r.Pos() != 15 {
-		t.Errorf("expected pos %d got %d", 15, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 15)
 	}
 	if !r.ReadBit() {
-		t.Errorf("expected 1 got 0")
+		t.Errorf("got 1, want 0")
 	}
 	if r.Pos() != 16 {
-		t.Errorf("expected pos %d got %d", 16, r.Pos())
+		t.Errorf("got pos %d, want %d", r.Pos(), 16)
 	}
 
 	// Some errors
@@ -72,9 +72,9 @@ func TestReadBits(t *testing.T) {
 		t.Errorf("expected err got none")
 	}
 	if _, err := r.Seek(17, SeekStart); err == nil {
-		t.Errorf("expected err got none")
+		t.Errorf("got none, want err")
 	}
 	if _, err := r.Seek(-1, SeekStart); err == nil {
-		t.Errorf("expected err got none")
+		t.Errorf("got none, want err")
 	}
 }
