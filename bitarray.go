@@ -134,7 +134,8 @@ func (ba *BitArray) Add(u uint) int {
 func (ba *BitArray) AddN(u uint, width int) int {
 	n := bits.Len(u)
 	if n > width {
-		panic("bitarray.AddN: insufficient size")
+		// Truncate
+		return ba.Add(u >> (n - width))
 	}
 	c := ba.Pad(uint(width - n))
 	if n != 0 {
