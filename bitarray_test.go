@@ -130,6 +130,7 @@ func TestSlice(t *testing.T) {
 		// 10010110 00101100 01001001 01110010 00101011 10000000
 		//                               ^^^^^ ^^
 		{NewFromBytes([]byte{0x96, 0x2c, 0x49, 0x72, 0x2b, 0x80}, 48), 27, 7, "[1001000-]", 1},
+		{NewFromBytes([]byte{0, 0xFF, 0xFF}, 24), 8, 0, "[]", 0},
 	}
 
 	for _, tt := range tests {
@@ -227,28 +228,26 @@ func TestSet(t *testing.T) {
 }
 
 func TestShiftL(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
-		in       uint
+		shift    int64
 		expected string
 	}{
-		{NewFromBytes([]byte{0x01}, 7), 1, "[00000010]"},
-		{NewFromBytes([]byte{0x01}, 7), 2, "[00000100]"},
-		{NewFromBytes([]byte{0x01}, 7), 3, "[00001000]"},
-		{NewFromBytes([]byte{0x01}, 7), 4, "[00010000]"},
-		{NewFromBytes([]byte{0x01}, 7), 5, "[00100000]"},
-		{NewFromBytes([]byte{0x01}, 7), 6, "[01000000]"},
-		{NewFromBytes([]byte{0x01}, 7), 7, "[10000000]"},
-		{NewFromBytes([]byte{0x01}, 7), 8, "[00000000]"},
-		// Across a byte
-		{NewFromBytes([]byte{0x01, 0x01}, 7), 5, "[00100000 00100000]"},
-		{NewFromBytes([]byte{0x01, 0x01}, 7), 8, "[00000001 00000000]"},
+		"short":              {NewFromBytes([]byte{0x01}, 8), 1, "[0000001-]"},
+		"longer":             {NewFromBytes([]byte{0x01}, 8), 7, "[1-------]"},
+		"fullByte":           {NewFromBytes([]byte{0x01}, 8), 8, "[]"},
+		"acrossByte":         {NewFromBytes([]byte{0x01, 0x01}, 16), 5, "[00100000 001-----]"},
+		"acrossBytesTrimmed": {NewFromBytes([]byte{0x01, 0x01}, 16), 8, "[00000001]"},
+		"moreThan8":          {NewFromBytes([]byte{0x00, 0x01}, 16), 11, "[00001---]"},
+		"moreThan16":         {NewFromBytes([]byte{0x00, 0x00, 0x01}, 24), 22, "[01------]"},
+		"shiftMoreThanSize":  {NewFromBytes([]byte{0x00, 0x01}, 16), 22, "[]"},
+		"shiftZero":          {NewFromBytes([]byte{0x00, 0x01}, 16), 0, "[00000000 00000001]"},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
-			tt.ba.ShiftL(tt.in)
-			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			tt.ba.ShiftL(tt.shift)
+			actual := tt.ba.String()
 			if actual != tt.expected {
 				t.Errorf("got %s, want %s", actual, tt.expected)
 			}
@@ -372,8 +371,6 @@ func TestAppend(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s+%s", tt.ba1, tt.ba2), func(t *testing.T) {
-			fmt.Printf("%08b", tt.ba1.Bytes())
-			fmt.Printf("%08b", tt.ba2.Bytes())
 			tt.ba1.Append(*tt.ba2)
 			actual := fmt.Sprintf("%08b", tt.ba1.Bytes())
 			if actual != tt.expected {
