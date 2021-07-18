@@ -39,9 +39,10 @@ func (ba BitArray) Len() int64 {
 // The remaining bits of the last byte are set to zero.
 func (ba BitArray) String() string {
 	var s strings.Builder
+	var pos int
 	s.WriteByte('[')
 	for i := int64(0); i < ba.size; i++ {
-		if i > 0 && i%8 == 0 {
+		if pos > 0 && pos%8 == 0 {
 			s.WriteByte(' ')
 		}
 		if ba.Test(i) {
@@ -49,9 +50,14 @@ func (ba BitArray) String() string {
 		} else {
 			s.WriteByte('0')
 		}
+		pos++
 	}
 	for i := uint(0); i < ba.avail(); i++ {
+		if pos > 0 && pos%8 == 0 {
+			s.WriteByte(' ')
+		}
 		s.WriteByte('-')
+		pos++
 	}
 	s.WriteByte(']')
 	return s.String()
