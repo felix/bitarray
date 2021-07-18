@@ -372,8 +372,6 @@ func TestAppend(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s+%s", tt.ba1, tt.ba2), func(t *testing.T) {
-			fmt.Printf("%08b", tt.ba1.Bytes())
-			fmt.Printf("%08b", tt.ba2.Bytes())
 			tt.ba1.Append(*tt.ba2)
 			actual := fmt.Sprintf("%08b", tt.ba1.Bytes())
 			if actual != tt.expected {
