@@ -2,6 +2,7 @@ package bitarray
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -246,15 +247,33 @@ func (ba *BitArray) Append(others ...BitArray) {
 }
 
 // Slice reads a range from the BitArray.
-func (ba *BitArray) Slice(start, length int64) (*BitArray, error) {
-	out := new(BitArray)
-	for i := start; i < (start + length); i++ {
-		if ba.Test(i) {
-			out.AddBit(1)
-		} else {
-			out.AddBit(0)
-		}
+func (ba *BitArray) Slice(startBit, length int64) (*BitArray, error) {
+	if startBit > ba.size-1 {
+		return nil, fmt.Errorf("slice start out of range: %d > %d", startBit, ba.size-1)
 	}
+
+	startB := int(startBit / 8)
+	// endB is the last byte to access, used in slice range, apply ceil
+	endB := int(startBit+length) / 8
+	if (startBit+length)%8 > 0 {
+		endB += 1
+	}
+	if endB > len(ba.raw) {
+		return nil, fmt.Errorf("slice length out of range: %d", endB)
+	}
+	toShift := int64(startBit % 8)
+	bCount := endB - startB + 1
+
+	out := &BitArray{
+		raw: make([]byte, bCount),
+		// Initial size, will trim later
+		size: int64(bCount) * 8,
+	}
+	// Lop bytes from start
+	copy(out.raw, ba.raw[startB:endB])
+	shiftBytesLeft(out.raw, toShift)
+	out.size = length
+	out.trim()
 	return out, nil
 }
 
@@ -268,7 +287,7 @@ func (ba *BitArray) ReadUint(start, length int64) (uint, error) {
 	return uint(out.Rsh(out, b.avail()).Uint64()), nil
 }
 
-// grow the underlying storage until we have available bits.
+// Grow the underlying storage until we have available bits.
 func (ba *BitArray) grow() {
 	if ba.avail() <= 0 {
 		ba.raw = append(ba.raw, byte(0))
@@ -276,32 +295,46 @@ func (ba *BitArray) grow() {
 }
 
 // The number of bits available in the underlying storage.
-func (ba BitArray) avail() uint {
+func (ba *BitArray) avail() uint {
 	return uint(int64(len(ba.raw)*8) - ba.size)
 }
 
-// ShiftL shifts all bits to the left and returns those
-// shifted off. s cannot be larger than 8.
-// TODO shift more than 8!
-func (ba *BitArray) ShiftL(s uint) (r byte) {
-	if s > 8 {
-		return
-	}
-	n := len(ba.raw)
-	if n == 0 {
-		return
-	}
+// Remove unused bytes
+func (ba *BitArray) trim() {
+	newSize := int(math.Ceil(float64(ba.size) / 8))
+	ba.raw = append([]byte(nil), ba.raw[:newSize]...)
+}
 
-	_s := 8 - s
-	b1 := ba.raw[n-1]
-	r = b1 >> _s
-	for i := 0; i < n-1; i++ {
-		b := b1
-		b1 = ba.raw[i+1]
-		ba.raw[i] = b<<s | b1>>_s
+// ShiftL returns a new BitArray with all bits to the left n times.
+func (ba *BitArray) ShiftL(n int64) {
+	if n > ba.size {
+		n = ba.size
 	}
-	ba.raw[n-1] = b1 << s
-	return r
+	// Number of bytes
+	newSize := ba.size - n
+
+	shiftBytesLeft(ba.raw, n)
+
+	ba.size = newSize
+	ba.trim()
+}
+
+func shiftBytesLeft(b []byte, n int64) {
+	l := int64(len(b))
+	if l < 1 {
+		return
+	}
+	// Number of bytes to lop from head
+	lopBytes := n / 8
+	// Bits to shift after lopping
+	bitShift := n % 8
+
+	// Shift remainder
+	for i := lopBytes; i < l-1; i++ {
+		b[i] = b[i]<<bitShift | b[i+1]>>(8-bitShift)
+	}
+	b[l-1] <<= bitShift
+	copy(b, b[lopBytes:])
 }
 
 // ShiftR shifts all bits to the right and returns those
