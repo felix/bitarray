@@ -235,6 +235,8 @@ func TestShiftL(t *testing.T) {
 	}{
 		"short":              {NewFromBytes([]byte{0x01}, 8), 1, "[0000001-]"},
 		"longer":             {NewFromBytes([]byte{0x01}, 8), 7, "[1-------]"},
+		"zero":               {NewFromBytes([]byte{0x01}, 8), 0, "[00000001]"},
+		"empty":              {NewFromBytes([]byte(nil), 0), 0, "[]"},
 		"fullByte":           {NewFromBytes([]byte{0x01}, 8), 8, "[]"},
 		"acrossByte":         {NewFromBytes([]byte{0x01, 0x01}, 16), 5, "[00100000 001-----]"},
 		"acrossBytesTrimmed": {NewFromBytes([]byte{0x01, 0x01}, 16), 8, "[00000001]"},
@@ -242,42 +244,13 @@ func TestShiftL(t *testing.T) {
 		"moreThan16":         {NewFromBytes([]byte{0x00, 0x00, 0x01}, 24), 22, "[01------]"},
 		"shiftMoreThanSize":  {NewFromBytes([]byte{0x00, 0x01}, 16), 22, "[]"},
 		"shiftZero":          {NewFromBytes([]byte{0x00, 0x01}, 16), 0, "[00000000 00000001]"},
+		"trimmed":            {NewFromBytes([]byte{0x00, 0x01}, 16), 8, "[00000001]"},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			tt.ba.ShiftL(tt.shift)
 			actual := tt.ba.String()
-			if actual != tt.expected {
-				t.Errorf("got %s, want %s", actual, tt.expected)
-			}
-		})
-	}
-}
-
-func TestShiftR(t *testing.T) {
-	tests := []struct {
-		ba       *BitArray
-		in       uint
-		expected string
-	}{
-		{NewFromBytes([]byte{0x80}, 8), 1, "[01000000]"},
-		{NewFromBytes([]byte{0x80}, 8), 2, "[00100000]"},
-		{NewFromBytes([]byte{0x80}, 8), 3, "[00010000]"},
-		{NewFromBytes([]byte{0x80}, 8), 4, "[00001000]"},
-		{NewFromBytes([]byte{0x80}, 8), 5, "[00000100]"},
-		{NewFromBytes([]byte{0x80}, 8), 6, "[00000010]"},
-		{NewFromBytes([]byte{0x80}, 8), 7, "[00000001]"},
-		{NewFromBytes([]byte{0x80}, 8), 8, "[00000000]"},
-		// Across a byte
-		{NewFromBytes([]byte{0x80, 0x80}, 16), 5, "[00000100 00000100]"},
-		{NewFromBytes([]byte{0x80, 0x80}, 16), 8, "[00000000 10000000]"},
-	}
-
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
-			tt.ba.ShiftR(tt.in)
-			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
 			if actual != tt.expected {
 				t.Errorf("got %s, want %s", actual, tt.expected)
 			}

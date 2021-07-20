@@ -24,7 +24,7 @@ func NewFromBytes(b []byte, count int64) *BitArray {
 	return out
 }
 
-const uintSize = 32 << (^uint(0) >> 63)
+//const uintSize = 32 << (^uint(0) >> 63)
 
 // Bytes returns the BitArray as bytes.
 func (ba BitArray) Bytes() []byte {
@@ -256,7 +256,7 @@ func (ba *BitArray) Slice(startBit, length int64) (*BitArray, error) {
 	// endB is the last byte to access, used in slice range, apply ceil
 	endB := int(startBit+length) / 8
 	if (startBit+length)%8 > 0 {
-		endB += 1
+		endB++
 	}
 	if endB > len(ba.raw) {
 		return nil, fmt.Errorf("slice length out of range: %d", endB)
@@ -335,28 +335,4 @@ func shiftBytesLeft(b []byte, n int64) {
 	}
 	b[l-1] <<= bitShift
 	copy(b, b[lopBytes:])
-}
-
-// ShiftR shifts all bits to the right and returns those
-// shifted off. s cannot be larger than 8.
-// TODO shift more than 8!
-func (ba *BitArray) ShiftR(s uint) (r byte) {
-	if s > 8 {
-		return
-	}
-	n := len(ba.raw)
-	if n == 0 {
-		return
-	}
-
-	_s := 8 - s
-	b1 := ba.raw[0]
-	r = b1 << _s
-	for i := n - 1; i > 0; i-- {
-		b := b1
-		b1 = ba.raw[i-1]
-		ba.raw[i] = b>>s | b1<<_s
-	}
-	ba.raw[0] = b1 >> s
-	return r
 }
