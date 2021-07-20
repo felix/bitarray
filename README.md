@@ -1,7 +1,11 @@
 # BitArray
 
 This package provides a bit array structure with sub-byte methods like packing
-and shifting for arrays of arbitrary length.
+and shifting for arrays of bits of arbitrary length.
+
+This is not useful for set operations. It facilitates encoding data that is not
+necessarily aligned to 8 bits. It was originally designed to cater to the
+packed encoding required for the ISO/IEC 20248 digital signature format.
 
 ## Usage
 
@@ -34,5 +38,11 @@ func main() {
 	var out uint
 	r.ReadBits(&out, 16)
 	fmt.Printf("%08b\n", out) // => 1011010000000101
+
+	ba.ShiftL(2)
+	fmt.Println(ba.String()) // => [11010000 000101--]
+
+	ba2, _ := ba.Slice(9, 6)
+	fmt.Println(ba2.String()) // => [000101--]
 }
 ```
