@@ -6,17 +6,18 @@ import (
 )
 
 func TestAddBit(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
 		in       uint
 		expected string
 	}{
-		{NewFromBytes([]byte{0xF0}, 4), 1, "[11111---]"},
-		{NewFromBytes([]byte{0xFF}, 8), 1, "[11111111 1-------]"},
+		"normal":     {New(SetBytes([]byte{0xF0}), SetSize(4)), 1, "[11111---]"},
+		"newByte":    {New(SetBytes([]byte{0xFF})), 1, "[11111111 1-------]"},
+		"resizedNew": {New(SetBytes([]byte{0xFF}), SetSize(16)), 1, "[11111111 00000000 1-------]"},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			lBefore := tt.ba.Len()
 			tt.ba.AddBit(tt.in)
 			actual := tt.ba.String()
@@ -32,23 +33,23 @@ func TestAddBit(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba        *BitArray
 		in        []uint
 		expected  string
 		expectedN int64
 	}{
-		{NewFromBytes([]byte{0xF0}, 4), []uint{1}, "[11111---]", 5},
-		{NewFromBytes([]byte{0xF0}, 8), []uint{1}, "[11110000 1-------]", 9},
-		{NewFromBytes([]byte{0xF0}, 4), []uint{0}, "[11110---]", 5},
-		{NewFromBytes([]byte{0xF0}, 4), []uint{0xf0ff, 0x0f}, "[11111111 00001111 11111111]", 24},
-		{NewFromBytes([]byte{0xF0}, 8), []uint{0xf0ff, 0x0f}, "[11110000 11110000 11111111 1111----]", 28},
-		{NewFromBytes([]byte{0xF0}, 8), []uint{0x0f0fff}, "[11110000 11110000 11111111 1111----]", 28},
-		{NewFromBytes([]byte{0xF0}, 8), []uint{0x81bf0fff}, "[11110000 10000001 10111111 00001111 11111111]", 40},
+		"addBit":        {NewFromBytes([]byte{0xF0}, 4), []uint{1}, "[11111---]", 5},
+		"acrossByte":    {NewFromBytes([]byte{0xF0}, 8), []uint{1}, "[11110000 1-------]", 9},
+		"addZero":       {NewFromBytes([]byte{0xF0}, 4), []uint{0}, "[11110---]", 5},
+		"multiple":      {NewFromBytes([]byte{0xF0}, 4), []uint{0xf0ff, 0x0f}, "[11111111 00001111 11111111]", 24},
+		"multipleLarge": {NewFromBytes([]byte{0xF0}, 8), []uint{0xf0ff, 0x0f}, "[11110000 11110000 11111111 1111----]", 28},
+		"singleLarge":   {NewFromBytes([]byte{0xF0}, 8), []uint{0x0f0fff}, "[11110000 11110000 11111111 1111----]", 28},
+		"singleLarge2":  {NewFromBytes([]byte{0xF0}, 8), []uint{0x81bf0fff}, "[11110000 10000001 10111111 00001111 11111111]", 40},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			for _, i := range tt.in {
 				tt.ba.Add(i)
 			}
@@ -64,34 +65,24 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddN(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
 		in       uint
 		l        int
 		expected string
 	}{
-		{NewFromBytes([]byte{0xF0}, 4), 1, 1, "[11111---]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 2, "[111101--]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 3, "[1111001-]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 4, "[11110001]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 5, "[11110000 1-------]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 6, "[11110000 01------]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 7, "[11110000 001-----]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 8, "[11110000 0001----]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 9, "[11110000 00001---]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 10, "[11110000 000001--]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 11, "[11110000 0000001-]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 12, "[11110000 00000001]"},
-		{NewFromBytes([]byte{0xF0}, 4), 1, 13, "[11110000 00000000 1-------]"},
-		// Add zero
-		{NewFromBytes([]byte{0xF0}, 4), 0, 6, "[11110000 00------]"},
-		// Truncate
-		{NewFromBytes([]byte{0xF0}, 4), 255, 1, "[11111---]"},
-		{NewFromBytes([]byte{0x00}, 0), 255, 2, "[11------]"},
+		"single":           {NewFromBytes([]byte{0xF0}, 4), 1, 1, "[11111---]"},
+		"fullByte":         {NewFromBytes([]byte{0xF0}, 4), 1, 4, "[11110001]"},
+		"acrossByte":       {NewFromBytes([]byte{0xF0}, 4), 1, 5, "[11110000 1-------]"},
+		"twoFullBytes":     {NewFromBytes([]byte{0xF0}, 4), 1, 12, "[11110000 00000001]"},
+		"acrossTwo":        {NewFromBytes([]byte{0xF0}, 4), 1, 13, "[11110000 00000000 1-------]"},
+		"addZero":          {NewFromBytes([]byte{0xF0}, 4), 0, 6, "[11110000 00------]"},
+		"truncate":         {NewFromBytes([]byte{0xF0}, 4), 255, 1, "[11111---]"},
+		"truncatedOnEmpty": {NewFromBytes([]byte{0x00}, 0), 255, 2, "[11------]"},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			lBefore := tt.ba.Len()
 			n := tt.ba.AddN(tt.in, tt.l)
 			actual := tt.ba.String()
@@ -110,31 +101,27 @@ func TestAddN(t *testing.T) {
 }
 
 func TestSlice(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
 		s, l     int64 // start and length
 		expected string
 		avail    uint
 	}{
-		{NewFromBytes([]byte{0xff}, 8), 0, 8, "[11111111]", 0},
-		{NewFromBytes([]byte{0xff}, 8), 0, 1, "[1-------]", 7},
-		{NewFromBytes([]byte{0xfe}, 8), 0, 8, "[11111110]", 0},
-		{NewFromBytes([]byte{0x03}, 8), 7, 1, "[1-------]", 7},
-		{NewFromBytes([]byte{0xd0}, 4), 0, 4, "[1101----]", 4},
-		// Multiple bytes
-		{NewFromBytes([]byte{0xd0, 0xff}, 16), 0, 9, "[11010000 1-------]", 7},
-		{NewFromBytes([]byte{0x0f, 0xf0}, 16), 4, 8, "[11111111]", 0},
-		// Cases
+		"fullFromStart":    {NewFromBytes([]byte{0xff}, 8), 0, 8, "[11111111]", 0},
+		"single":           {NewFromBytes([]byte{0xff}, 8), 0, 1, "[1-------]", 7},
+		"toEnd":            {NewFromBytes([]byte{0x03}, 8), 7, 1, "[1-------]", 7},
+		"middle":           {NewFromBytes([]byte{0xd0}, 4), 0, 4, "[1101----]", 4},
+		"multipleBytes":    {NewFromBytes([]byte{0xd0, 0xff}, 16), 0, 9, "[11010000 1-------]", 7},
+		"multipleToSingle": {NewFromBytes([]byte{0x0f, 0xf0}, 16), 4, 8, "[11111111]", 0},
 		// 10010110 00101100 01001001 => 1000101
-		{NewFromBytes([]byte{0x96, 0x2c, 0x49}, 24), 6, 7, "[1000101-]", 1},
+		"testCase1": {NewFromBytes([]byte{0x96, 0x2c, 0x49}, 24), 6, 7, "[1000101-]", 1},
 		// 10010110 00101100 01001001 01110010 00101011 10000000
 		//                               ^^^^^ ^^
-		{NewFromBytes([]byte{0x96, 0x2c, 0x49, 0x72, 0x2b, 0x80}, 48), 27, 7, "[1001000-]", 1},
-		{NewFromBytes([]byte{0, 0xFF, 0xFF}, 24), 8, 0, "[]", 0},
+		"testCase2":  {NewFromBytes([]byte{0x96, 0x2c, 0x49, 0x72, 0x2b, 0x80}, 48), 27, 7, "[1001000-]", 1},
+		"zeroLength": {NewFromBytes([]byte{0, 0xFF, 0xFF}, 24), 8, 0, "[]", 0},
 	}
 
-	for _, tt := range tests {
-		name := fmt.Sprintf("%x[%d:%d]", tt.ba.raw, tt.s, tt.l)
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			a, err := tt.ba.Slice(tt.s, tt.l)
 			if err != nil {
@@ -152,24 +139,20 @@ func TestSlice(t *testing.T) {
 }
 
 func TestReadUint(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
 		s, l     int64 // start and length
 		expected uint
 	}{
-		{NewFromBytes([]byte{0x02}, 8), 0, 8, 0x02},
-		{NewFromBytes([]byte{0xff}, 8), 0, 8, 0xff},
-		{NewFromBytes([]byte{0xff}, 8), 0, 1, 0x01},
-		{NewFromBytes([]byte{0xfe}, 8), 0, 8, 0xfe},
-		{NewFromBytes([]byte{0x03}, 8), 7, 1, 0x01},
-		{NewFromBytes([]byte{0xd0}, 8), 0, 4, 0x0d},
-		// Multiple bytes
-		{NewFromBytes([]byte{0xd0, 0xff}, 16), 0, 9, 0x1a1},
-		{NewFromBytes([]byte{0x0f, 0xf0}, 16), 4, 8, 0xff},
+		"fullByte":      {NewFromBytes([]byte{0x02}, 8), 0, 8, 0x02},
+		"singleBit":     {NewFromBytes([]byte{0xff}, 8), 0, 1, 0x01},
+		"endOfByte":     {NewFromBytes([]byte{0x03}, 8), 7, 1, 0x01},
+		"halfByte":      {NewFromBytes([]byte{0xd0}, 8), 0, 4, 0x0d},
+		"multipleBytes": {NewFromBytes([]byte{0xd0, 0xff}, 16), 0, 9, 0x1a1},
+		"acrossBytes":   {NewFromBytes([]byte{0x0f, 0xf0}, 16), 4, 8, 0xff},
 	}
 
-	for _, tt := range tests {
-		name := fmt.Sprintf("%x[%d:%d]", tt.ba.raw, tt.s, tt.l)
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			actual, err := tt.ba.ReadUint(tt.s, tt.l)
 			if err != nil {
@@ -183,21 +166,21 @@ func TestReadUint(t *testing.T) {
 }
 
 func TestTest(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
 		in       int64
 		expected bool
 	}{
-		{NewFromBytes([]byte{0x01}, 8), 0, false},
-		{NewFromBytes([]byte{0x01}, 8), 1, false},
-		{NewFromBytes([]byte{0x01}, 8), 7, true},
-		{NewFromBytes([]byte{0x01}, 8), 8, false},
-		{NewFromBytes([]byte{0x00, 0x80}, 16), 8, true},
-		{NewFromBytes([]byte{0x00, 0x02}, 16), 14, true},
+		"offset1":        {NewFromBytes([]byte{0x01}, 8), 0, false},
+		"offset2":        {NewFromBytes([]byte{0x01}, 8), 1, false},
+		"endOfByte":      {NewFromBytes([]byte{0x01}, 8), 7, true},
+		"outOfRange":     {NewFromBytes([]byte{0x01}, 8), 8, false},
+		"multipleBytes":  {NewFromBytes([]byte{0x00, 0x80}, 16), 8, true},
+		"multipleBytes2": {NewFromBytes([]byte{0x00, 0x02}, 16), 14, true},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			actual := tt.ba.Test(tt.in)
 			if actual != tt.expected {
 				t.Errorf("got %t, want %t", actual, tt.expected)
@@ -207,17 +190,17 @@ func TestTest(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba       *BitArray
 		in       int64
 		expected string
 	}{
-		{NewFromBytes([]byte{0x00}, 1), 0, "[10000000]"},
-		{NewFromBytes([]byte{0x80}, 8), 1, "[11000000]"},
+		"start":        {NewFromBytes([]byte{0x00}, 1), 0, "[10000000]"},
+		"withExisting": {NewFromBytes([]byte{0x80}, 8), 1, "[11000000]"},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%d", tt.in), func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			tt.ba.Set(tt.in)
 			actual := fmt.Sprintf("%08b", tt.ba.Bytes())
 			if actual != tt.expected {
@@ -236,7 +219,7 @@ func TestShiftL(t *testing.T) {
 		"short":              {NewFromBytes([]byte{0x01}, 8), 1, "[0000001-]"},
 		"longer":             {NewFromBytes([]byte{0x01}, 8), 7, "[1-------]"},
 		"zero":               {NewFromBytes([]byte{0x01}, 8), 0, "[00000001]"},
-		"empty":              {NewFromBytes([]byte(nil), 0), 0, "[]"},
+		"empty":              {New(), 0, "[]"},
 		"fullByte":           {NewFromBytes([]byte{0x01}, 8), 8, "[]"},
 		"acrossByte":         {NewFromBytes([]byte{0x01, 0x01}, 16), 5, "[00100000 001-----]"},
 		"acrossBytesTrimmed": {NewFromBytes([]byte{0x01, 0x01}, 16), 8, "[00000001]"},
@@ -332,18 +315,18 @@ func TestPack(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		ba1      *BitArray
 		ba2      *BitArray
 		expected string
 	}{
-		{NewFromBytes([]byte{0x80}, 1), NewFromBytes([]byte{0x80}, 1), "[11000000]"},
-		{NewFromBytes([]byte{0x80}, 8), NewFromBytes([]byte{0x80}, 1), "[10000000 10000000]"},
-		{NewFromBytes([]byte{0xF0}, 4), NewFromBytes([]byte{0xF0}, 4), "[11111111]"},
+		"singleBites":   {NewFromBytes([]byte{0x80}, 1), NewFromBytes([]byte{0x80}, 1), "[11000000]"},
+		"fullAndSingle": {NewFromBytes([]byte{0x80}, 8), NewFromBytes([]byte{0x80}, 1), "[10000000 10000000]"},
+		"twoHalves":     {NewFromBytes([]byte{0xF0}, 4), NewFromBytes([]byte{0xF0}, 4), "[11111111]"},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%s+%s", tt.ba1, tt.ba2), func(t *testing.T) {
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
 			tt.ba1.Append(*tt.ba2)
 			actual := fmt.Sprintf("%08b", tt.ba1.Bytes())
 			if actual != tt.expected {
