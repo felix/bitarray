@@ -2,7 +2,6 @@ package bitarray
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -14,14 +13,52 @@ type BitArray struct {
 	size int64
 }
 
+// New creates a BitArray.
+func New(opts ...Option) *BitArray {
+	out := &BitArray{
+		size: 0,
+	}
+	for _, o := range opts {
+		o(out)
+	}
+	var bCount int
+	if out.size > 0 {
+		bCount = int(out.size / 8)
+		if out.size%8 > 0 {
+			bCount++
+		}
+	}
+	if out.raw == nil {
+		out.raw = make([]byte, bCount)
+	} else if bCount > len(out.raw) {
+		out.raw = append(out.raw, make([]byte, bCount-len(out.raw))...)
+	}
+	return out
+}
+
+type Option option
+
+type option func(*BitArray)
+
+// SetBytes configures the BitArray with initial data.
+func SetBytes(b []byte) Option {
+	return func(ba *BitArray) {
+		ba.raw = b
+		ba.size = int64(len(b) * 8)
+	}
+}
+
+// SetSize configures the BitArray with an initial size.
+func SetSize(n int64) Option {
+	return func(ba *BitArray) {
+		ba.size = n
+	}
+}
+
 // NewFromBytes creates a BitArray from the given []byte and count bits.
 // Count is from position 0 of b.
 func NewFromBytes(b []byte, count int64) *BitArray {
-	out := &BitArray{}
-	out.raw = b
-	out.size = count
-	//out.avail = uint(len(b)*8 - count)
-	return out
+	return New(SetBytes(b), SetSize(count))
 }
 
 //const uintSize = 32 << (^uint(0) >> 63)
@@ -301,7 +338,10 @@ func (ba *BitArray) avail() uint {
 
 // Remove unused bytes
 func (ba *BitArray) trim() {
-	newSize := int(math.Ceil(float64(ba.size) / 8))
+	newSize := ba.size / 8
+	if ba.size%8 > 0 {
+		newSize++
+	}
 	ba.raw = append([]byte(nil), ba.raw[:newSize]...)
 }
 
