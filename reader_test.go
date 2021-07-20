@@ -5,76 +5,67 @@ import (
 )
 
 func TestReadBits(t *testing.T) {
-	ba := NewFromBytes([]byte{0xf0, 0x01}, 16)
-	r := NewReader(ba)
-
-	if r.Pos() != 0 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 0)
+	tests := map[string]struct {
+		ba *BitArray
+		// Seeking
+		offset     int64
+		dir        SeekFrom
+		seekOffset int64
+		// Reading
+		count      int
+		readOffset int64
+		want       uint
+	}{
+		"fromStart": {
+			ba:         NewFromBytes([]byte{0xf0, 0x01}, 16),
+			offset:     0,
+			dir:        SeekStart,
+			seekOffset: 0,
+			count:      4,
+			readOffset: 4,
+			want:       15,
+		},
+		"fromEnd": {
+			ba:         NewFromBytes([]byte{0xf0, 0x01}, 16),
+			offset:     4,
+			dir:        SeekEnd,
+			seekOffset: 12,
+			count:      4,
+			readOffset: 16,
+			want:       1,
+		},
+		"fromCurrent": {
+			ba:         NewFromBytes([]byte{0xf0, 0x01}, 16),
+			offset:     12,
+			dir:        SeekCurrent,
+			seekOffset: 12,
+			count:      4,
+			readOffset: 16,
+			want:       1,
+		},
 	}
 
-	var test uint
-	if err := r.ReadBits(&test, 4); err != nil {
-		t.Errorf("failed with %q", err)
-	}
-	if test != 15 {
-		t.Errorf("got 15, want %d", test)
-	}
-	if r.Pos() != 4 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 4)
-	}
-	r.Seek(-4, SeekCurrent)
-	if r.Pos() != 0 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 0)
-	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			r := NewReader(tt.ba)
+			actualPos, err := r.Seek(tt.offset, tt.dir)
+			if err != nil {
+				t.Fatalf("failed to seek: %s", err)
+			}
+			if actualPos != tt.seekOffset {
+				t.Errorf("got %d, want %d", actualPos, tt.seekOffset)
+			}
+			var actual uint
+			if err := r.ReadBits(&actual, tt.count); err != nil {
+				t.Fatalf("failed to read: %s", err)
+			}
+			if actual != tt.want {
+				t.Errorf("got %d, want %d", actual, tt.want)
+			}
+			if r.Pos() != tt.readOffset {
+				t.Errorf("got %d, want %d", r.Pos(), tt.readOffset)
+			}
 
-	r.Seek(4, SeekStart)
-	if r.Pos() != 4 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 4)
-	}
-	if err := r.ReadBits(&test, 4); err != nil {
-		t.Errorf("failed with %q", err)
-	}
-	if test != 0 {
-		t.Errorf("got 0, want %d", test)
-	}
-	if r.Pos() != 8 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 8)
-	}
-
-	if err := r.ReadBits(&test, 8); err != nil {
-		t.Errorf("failed with %q", err)
-	}
-	if test != 1 {
-		t.Errorf("got 1, want %d", test)
-	}
-	if r.Pos() != 16 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 16)
-	}
-
-	// Read past end
-	if err := r.ReadBits(&test, 1); err == nil {
-		t.Errorf("expected error")
-	}
-
-	r.Seek(1, SeekEnd)
-	if r.Pos() != 15 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 15)
-	}
-	if !r.ReadBit() {
-		t.Errorf("got 1, want 0")
-	}
-	if r.Pos() != 16 {
-		t.Errorf("got pos %d, want %d", r.Pos(), 16)
-	}
-
-	// Some errors
-	if _, err := r.Seek(1, 4); err == nil {
-		t.Errorf("expected err got none")
-	}
-	if _, err := r.Seek(17, SeekStart); err == nil {
-		t.Errorf("got none, want err")
-	}
-	if _, err := r.Seek(-1, SeekStart); err == nil {
-		t.Errorf("got none, want err")
+		})
 	}
 }
