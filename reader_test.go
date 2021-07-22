@@ -9,7 +9,7 @@ func TestReadBits(t *testing.T) {
 		ba *BitArray
 		// Seeking
 		offset     int64
-		dir        SeekFrom
+		dir        int
 		seekOffset int64
 		// Reading
 		count      int

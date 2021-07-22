@@ -13,11 +13,9 @@ var (
 	ErrInvalidOffset = errors.New("invalid offset")
 )
 
-type SeekFrom int
-
 const (
 	// SeekStart seeks relative to the origin of the file
-	SeekStart SeekFrom = iota
+	SeekStart = 0
 	// SeekCurrent seeks relative to the current offset
 	SeekCurrent = 1
 	// SeekEnd seeks relative to the end
@@ -63,7 +61,7 @@ func (r *Reader) ReadBit() bool {
 }
 
 // Seek sets the internal pointer to position n. It returns the resulting offset.
-func (r *Reader) Seek(offset int64, whence SeekFrom) (int64, error) {
+func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case SeekStart:
 		r.i = offset
